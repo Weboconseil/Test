@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 def calculate_metrics(
     monthly_traffic,
@@ -60,60 +61,84 @@ def calculate_metrics(
         "Point mort": round(break_even, 2)
     }
 
-st.title("Prévisions Financières E-commerce")
+def main():
+    st.title("Prévisions Financières E-commerce")
+    
+    with st.sidebar:
+        st.header("Hypothèses")
+        
+        st.subheader("Trafic et Conversion")
+        traffic = st.number_input("Trafic mensuel", min_value=0, value=1000)
+        conversion = st.number_input("Taux de conversion (%)", min_value=0.0, value=2.0)
+        
+        st.subheader("Panier 1")
+        basket1_price = st.number_input("Prix panier 1 (€)", min_value=0.0, value=80.0)
+        basket1_margin = st.number_input("Marge panier 1 (%)", min_value=0.0, value=60.0)
+        basket1_volume = st.number_input("Part volume panier 1 (%)", min_value=0.0, max_value=100.0, value=50.0)
+        
+        st.subheader("Panier 2")
+        basket2_price = st.number_input("Prix panier 2 (€)", min_value=0.0, value=60.0)
+        basket2_margin = st.number_input("Marge panier 2 (%)", min_value=0.0, value=40.0)
+        basket2_volume = st.number_input("Part volume panier 2 (%)", min_value=0.0, max_value=100.0, value=50.0)
+        
+        st.subheader("Coûts")
+        shipping = st.number_input("Frais de livraison par commande (€)", min_value=0.0, value=6.0)
+        seo = st.number_input("Consultant SEO (€/mois)", min_value=0.0, value=200.0)
+        ads = st.number_input("Budget publicité (€/mois)", min_value=0.0, value=300.0)
+    
+    # Calcul des métriques
+    metrics = calculate_metrics(
+        traffic, conversion,
+        basket1_price, basket1_margin, basket1_volume,
+        basket2_price, basket2_margin, basket2_volume,
+        shipping, seo, ads
+    )
+    
+    # Affichage des résultats
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Revenus")
+        st.metric("Nombre de commandes", f"{metrics['Commandes']}")
+        st.metric("Chiffre d'affaires", f"{metrics['Chiffre d'affaires']}€")
+        st.metric("Frais Shopify", f"{metrics['Frais Shopify']}€")
+    
+    with col2:
+        st.subheader("Marges")
+        st.metric("Marge brute", f"{metrics['Marge brute']}€")
+        st.metric("Marge nette", f"{metrics['Marge nette']}€")
+        st.metric("Taux de marge brute", f"{metrics['Taux de marge brute (%)']}%")
+    
+    # Graphique en cascade
+    fig = go.Figure(go.Waterfall(
+        name="Cascade financière",
+        orientation="v",
+        measure=["relative", "relative", "relative", "relative", "relative", "total", "relative", "total"],
+        x=["CA", "Frais Shopify", "Coût d'achat", "Livraison", "Marge brute", "Coûts fixes", "Marge nette"],
+        y=[
+            metrics["Chiffre d'affaires"],
+            -metrics["Frais Shopify"],
+            -metrics["Coût d'achat total"],
+            -metrics["Frais de livraison"],
+            metrics["Marge brute"],
+            -(seo + ads + 32 + 1.25),  # Coûts fixes
+            metrics["Marge nette"]
+        ],
+        connector={"line": {"color": "rgb(63, 63, 63)"}},
+    ))
 
-# Sidebar pour les inputs
-st.sidebar.header("Hypothèses")
-
-st.sidebar.subheader("Trafic et Conversion")
-traffic = st.sidebar.number_input("Trafic mensuel", min_value=0, value=1000)
-conversion = st.sidebar.number_input("Taux de conversion (%)", min_value=0.0, value=2.0)
-
-st.sidebar.subheader("Panier 1")
-basket1_price = st.sidebar.number_input("Prix panier 1 (€)", min_value=0.0, value=80.0)
-basket1_margin = st.sidebar.number_input("Marge panier 1 (%)", min_value=0.0, value=60.0)
-basket1_volume = st.sidebar.number_input("Part volume panier 1 (%)", min_value=0.0, max_value=100.0, value=50.0)
-
-st.sidebar.subheader("Panier 2")
-basket2_price = st.sidebar.number_input("Prix panier 2 (€)", min_value=0.0, value=60.0)
-basket2_margin = st.sidebar.number_input("Marge panier 2 (%)", min_value=0.0, value=40.0)
-basket2_volume = st.sidebar.number_input("Part volume panier 2 (%)", min_value=0.0, max_value=100.0, value=50.0)
-
-st.sidebar.subheader("Coûts")
-shipping = st.sidebar.number_input("Frais de livraison par commande (€)", min_value=0.0, value=6.0)
-seo = st.sidebar.number_input("Consultant SEO (€/mois)", min_value=0.0, value=200.0)
-ads = st.sidebar.number_input("Budget publicité (€/mois)", min_value=0.0, value=300.0)
-
-# Calcul des métriques
-metrics = calculate_metrics(
-    traffic, conversion,
-    basket1_price, basket1_margin, basket1_volume,
-    basket2_price, basket2_margin, basket2_volume,
-    shipping, seo, ads
-)
-
-# Affichage des résultats en colonnes
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.subheader("Revenus")
-    st.metric("Nombre de commandes", f"{metrics['Commandes']}")
-    st.metric("Chiffre d'affaires", f"{metrics['Chiffre d'affaires']}€")
-    st.metric("Frais Shopify", f"{metrics['Frais Shopify']}€")
-
-with col2:
-    st.subheader("Marges")
-    st.metric("Marge brute", f"{metrics['Marge brute']}€")
-    st.metric("Marge nette", f"{metrics['Marge nette']}€")
-    st.metric("Taux de marge brute", f"{metrics['Taux de marge brute (%)']}%")
-
-with col3:
+    fig.update_layout(
+        title="Décomposition du résultat",
+        showlegend=False,
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Ratios additionnels
     st.subheader("Ratios clés")
     st.metric("Ratio marketing", f"{metrics['Ratio marketing (%)']}%")
     st.metric("Point mort", f"{metrics['Point mort']}€")
 
-# Tableau détaillé
-st.subheader("Détails des calculs")
-df = pd.DataFrame([metrics]).T
-df.columns = ['Valeur']
-st.dataframe(df)
+if __name__ == "__main__":
+    main()
