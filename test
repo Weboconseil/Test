@@ -2,203 +2,143 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-def calculate_monthly_metrics(
+def calculate_metrics(
     monthly_traffic,
     conversion_rate,
-    average_basket,
-    initial_capital,
-    initial_stock,
-    purchase_price_ratio,
+    basket1_price,
+    basket1_margin,
+    basket1_volume,
+    basket2_price,
+    basket2_margin,
+    basket2_volume,
     shipping_cost,
-    marketing_budget
+    seo_cost,
+    ads_cost
 ):
-    # Calculs de base
+    # Calcul du nombre de commandes
     orders = monthly_traffic * (conversion_rate / 100)
-    revenue = orders * average_basket
+    
+    # Calcul du panier moyen pondéré
+    avg_basket = (basket1_price * (basket1_volume/100)) + (basket2_price * (basket2_volume/100))
+    
+    # Chiffre d'affaires
+    revenue = orders * avg_basket
     
     # Coûts variables
-    purchase_cost = revenue * (purchase_price_ratio / 100)
-    shipping_total = orders * shipping_cost
-    shopify_fees = (revenue * 0.029) + (orders * 0.30)
+    shopify_fees = (revenue * 0.029) + (orders * 0.30)  # 2.9% + 0.30€ par transaction
     
-    # Coûts fixes
-    fixed_costs = {
-        'Shopify': 32,
-        'SEO': 200,
-        'Domain': 1.25,
-        'Marketing': marketing_budget
-    }
-    total_fixed_costs = sum(fixed_costs.values())
+    # Prix d'achat moyen pondéré
+    basket1_cost = basket1_price * (1 - basket1_margin/100)
+    basket2_cost = basket2_price * (1 - basket2_margin/100)
+    avg_purchase_cost = (basket1_cost * (basket1_volume/100)) + (basket2_cost * (basket2_volume/100))
+    total_purchase_cost = orders * avg_purchase_cost
     
-    # Marges
-    gross_margin = revenue - purchase_cost - shipping_total - shopify_fees
-    net_margin = gross_margin - total_fixed_costs
+    # Coûts de livraison
+    shipping_costs = orders * shipping_cost
+    
+    # Coûts fixes mensuels
+    monthly_fixed_costs = 32 + seo_cost + 1.25 + ads_cost  # Shopify + SEO + Domaine + Pub
+    
+    # Calcul des marges
+    gross_margin = revenue - total_purchase_cost - shipping_costs - shopify_fees
+    net_margin = gross_margin - monthly_fixed_costs
     
     # Ratios
     gross_margin_rate = (gross_margin / revenue) * 100 if revenue > 0 else 0
-    marketing_ratio = (marketing_budget / revenue) * 100 if revenue > 0 else 0
-    break_even = total_fixed_costs / (gross_margin_rate / 100) if gross_margin_rate > 0 else 0
+    marketing_ratio = ((seo_cost + ads_cost) / revenue) * 100 if revenue > 0 else 0
+    break_even = monthly_fixed_costs / (gross_margin_rate/100) if gross_margin_rate > 0 else 0
     
     return {
-        'revenue': revenue,
-        'orders': orders,
-        'purchase_cost': purchase_cost,
-        'shipping_total': shipping_total,
-        'shopify_fees': shopify_fees,
-        'fixed_costs': total_fixed_costs,
-        'gross_margin': gross_margin,
-        'net_margin': net_margin,
-        'gross_margin_rate': gross_margin_rate,
-        'marketing_ratio': marketing_ratio,
-        'break_even': break_even
+        "Commandes": round(orders, 2),
+        "Chiffre d'affaires": round(revenue, 2),
+        "Frais Shopify": round(shopify_fees, 2),
+        "Coût d'achat total": round(total_purchase_cost, 2),
+        "Frais de livraison": round(shipping_costs, 2),
+        "Marge brute": round(gross_margin, 2),
+        "Marge nette": round(net_margin, 2),
+        "Taux de marge brute (%)": round(gross_margin_rate, 2),
+        "Ratio marketing (%)": round(marketing_ratio, 2),
+        "Point mort": round(break_even, 2)
     }
 
-def calculate_annual_projection(monthly_metrics):
-    annual = {k: v * 12 for k, v in monthly_metrics.items()}
-    annual['taxes'] = max(0, annual['net_margin'] * 0.20)
-    annual['net_profit'] = annual['net_margin'] - annual['taxes']
-    return annual
-
 def main():
-    st.title("Business Plan Financier")
+    st.title("Prévisions Financières E-commerce")
     
-    # Sidebar pour les hypothèses
-    st.sidebar.header("Hypothèses de départ")
+    with st.sidebar:
+        st.header("Hypothèses")
+        
+        st.subheader("Trafic et Conversion")
+        traffic = st.number_input("Trafic mensuel", min_value=0, value=1000)
+        conversion = st.number_input("Taux de conversion (%)", min_value=0.0, value=2.0)
+        
+        st.subheader("Panier 1")
+        basket1_price = st.number_input("Prix panier 1 (€)", min_value=0.0, value=80.0)
+        basket1_margin = st.number_input("Marge panier 1 (%)", min_value=0.0, value=60.0)
+        basket1_volume = st.number_input("Part volume panier 1 (%)", min_value=0.0, max_value=100.0, value=50.0)
+        
+        st.subheader("Panier 2")
+        basket2_price = st.number_input("Prix panier 2 (€)", min_value=0.0, value=60.0)
+        basket2_margin = st.number_input("Marge panier 2 (%)", min_value=0.0, value=40.0)
+        basket2_volume = st.number_input("Part volume panier 2 (%)", min_value=0.0, max_value=100.0, value=50.0)
+        
+        st.subheader("Coûts")
+        shipping = st.number_input("Frais de livraison par commande (€)", min_value=0.0, value=6.0)
+        seo = st.number_input("Consultant SEO (€/mois)", min_value=0.0, value=200.0)
+        ads = st.number_input("Budget publicité (€/mois)", min_value=0.0, value=300.0)
     
-    monthly_traffic = st.sidebar.number_input(
-        "Trafic mensuel initial",
-        min_value=0,
-        value=1000
+    # Calcul des métriques
+    metrics = calculate_metrics(
+        traffic, conversion,
+        basket1_price, basket1_margin, basket1_volume,
+        basket2_price, basket2_margin, basket2_volume,
+        shipping, seo, ads
     )
-    
-    conversion_rate = st.sidebar.number_input(
-        "Taux de conversion (%)",
-        min_value=0.0,
-        max_value=100.0,
-        value=2.0,
-        step=0.1
-    )
-    
-    average_basket = st.sidebar.number_input(
-        "Panier moyen (€)",
-        min_value=0.0,
-        value=80.0
-    )
-    
-    initial_capital = st.sidebar.number_input(
-        "Capital initial (€)",
-        min_value=0,
-        value=10000
-    )
-    
-    initial_stock = st.sidebar.number_input(
-        "Stock initial (€)",
-        min_value=0,
-        value=3000
-    )
-    
-    purchase_price_ratio = st.sidebar.number_input(
-        "Prix d'achat (% du prix de vente)",
-        min_value=0.0,
-        max_value=100.0,
-        value=40.0
-    )
-    
-    shipping_cost = st.sidebar.number_input(
-        "Frais de livraison par commande (€)",
-        min_value=0.0,
-        value=6.0
-    )
-    
-    marketing_budget = st.sidebar.number_input(
-        "Budget marketing mensuel (€)",
-        min_value=0.0,
-        value=300.0
-    )
-    
-    # Calculs
-    monthly = calculate_monthly_metrics(
-        monthly_traffic,
-        conversion_rate,
-        average_basket,
-        initial_capital,
-        initial_stock,
-        purchase_price_ratio,
-        shipping_cost,
-        marketing_budget
-    )
-    
-    annual = calculate_annual_projection(monthly)
     
     # Affichage des résultats
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Résultats Mensuels")
-        st.metric("Chiffre d'affaires", f"{monthly['revenue']:.2f}€")
-        st.metric("Nombre de commandes", f"{monthly['orders']:.0f}")
-        st.metric("Marge nette", f"{monthly['net_margin']:.2f}€")
+        st.subheader("Revenus")
+        st.metric("Nombre de commandes", f"{metrics['Commandes']}")
+        st.metric("Chiffre d'affaires", f"{metrics['Chiffre d'affaires']}€")
+        st.metric("Frais Shopify", f"{metrics['Frais Shopify']}€")
     
     with col2:
-        st.subheader("Ratios Clés")
-        st.metric("Taux de marge brute", f"{monthly['gross_margin_rate']:.1f}%")
-        st.metric("Ratio marketing", f"{monthly['marketing_ratio']:.1f}%")
-        st.metric("Point mort mensuel", f"{monthly['break_even']:.2f}€")
+        st.subheader("Marges")
+        st.metric("Marge brute", f"{metrics['Marge brute']}€")
+        st.metric("Marge nette", f"{metrics['Marge nette']}€")
+        st.metric("Taux de marge brute", f"{metrics['Taux de marge brute (%)']}%")
     
-    # Compte de résultat annuel
-    st.header("Compte de Résultat Prévisionnel (Année 1)")
-    
-    results_df = pd.DataFrame([
-        ["Chiffre d'affaires", annual['revenue']],
-        ["Coût des marchandises", -annual['purchase_cost']],
-        ["Frais de livraison", -annual['shipping_total']],
-        ["Commissions Shopify", -annual['shopify_fees']],
-        ["Charges fixes", -annual['fixed_costs']],
-        ["Résultat d'exploitation", annual['net_margin']],
-        ["Impôts (20%)", -annual['taxes']],
-        ["Résultat net", annual['net_profit']]
-    ], columns=["Poste", "Montant (€)"])
-    
-    st.dataframe(results_df.style.format({'Montant (€)': '{:.2f}'}))
-    
-    # Trésorerie
-    st.header("Prévisions de Trésorerie")
-    
-    cash_m1 = initial_capital - initial_stock - monthly['fixed_costs'] - \
-              monthly['purchase_cost'] - monthly['shipping_total'] - monthly['shopify_fees']
-    
-    annual_cash_in = initial_capital + annual['revenue']
-    annual_cash_out = initial_stock + annual['fixed_costs'] + annual['purchase_cost'] + \
-                     annual['shipping_total'] + annual['shopify_fees']
-    final_balance = annual_cash_in - annual_cash_out
-    
-    cash_df = pd.DataFrame([
-        ["Solde Mois 1", cash_m1],
-        ["Entrées annuelles", annual_cash_in],
-        ["Sorties annuelles", annual_cash_out],
-        ["Solde fin d'année", final_balance]
-    ], columns=["Poste", "Montant (€)"])
-    
-    st.dataframe(cash_df.style.format({'Montant (€)': '{:.2f}'}))
-    
-    # Graphique de rentabilité
-    months = range(1, 13)
-    cumulative_revenue = [monthly['revenue'] * m for m in months]
-    cumulative_costs = [(monthly['fixed_costs'] + monthly['purchase_cost'] + 
-                        monthly['shipping_total'] + monthly['shopify_fees']) * m for m in months]
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=months, y=cumulative_revenue, name="Revenus cumulés"))
-    fig.add_trace(go.Scatter(x=months, y=cumulative_costs, name="Coûts cumulés"))
-    
+    # Graphique en cascade
+    fig = go.Figure(go.Waterfall(
+        name="Cascade financière",
+        orientation="v",
+        measure=["relative", "relative", "relative", "relative", "relative", "total", "relative", "total"],
+        x=["CA", "Frais Shopify", "Coût d'achat", "Livraison", "Marge brute", "Coûts fixes", "Marge nette"],
+        y=[
+            metrics["Chiffre d'affaires"],
+            -metrics["Frais Shopify"],
+            -metrics["Coût d'achat total"],
+            -metrics["Frais de livraison"],
+            metrics["Marge brute"],
+            -(seo + ads + 32 + 1.25),  # Coûts fixes
+            metrics["Marge nette"]
+        ],
+        connector={"line": {"color": "rgb(63, 63, 63)"}},
+    ))
+
     fig.update_layout(
-        title="Projection de Rentabilité sur 12 mois",
-        xaxis_title="Mois",
-        yaxis_title="Euros (€)",
-        showlegend=True
+        title="Décomposition du résultat",
+        showlegend=False,
+        height=500
     )
     
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Ratios additionnels
+    st.subheader("Ratios clés")
+    st.metric("Ratio marketing", f"{metrics['Ratio marketing (%)']}%")
+    st.metric("Point mort", f"{metrics['Point mort']}€")
 
 if __name__ == "__main__":
     main()
