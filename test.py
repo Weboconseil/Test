@@ -50,9 +50,10 @@ def calculate_financials(inputs, paniers_data):
     # Calcul du nombre total de commandes
     nb_commandes_total = inputs['trafic_mensuel'] * (inputs['taux_conversion'] / 100)
     
-    # Calcul du chiffre d'affaires pour chaque panier
+    # Calcul du chiffre d'affaires et des charges variables pour chaque panier
     ca_par_panier = {}
     ca_total = 0
+    charges_variables_achats = 0
     nb_commandes_par_panier = {}
     
     for panier in paniers_data:
@@ -64,11 +65,15 @@ def calculate_financials(inputs, paniers_data):
         ca_panier = nb_commandes * panier['prix_achat'] * (1 + panier['marge'] / 100)
         ca_par_panier[panier['nom']] = ca_panier
         ca_total += ca_panier
+        
+        # Calcul des charges variables d'achat pour ce panier
+        charges_variables_achats += nb_commandes * panier['prix_achat']
     
-    # Calcul des charges variables
-    commissions = (ca_total * 0.029) + (nb_commandes_total * 0.30)
-    frais_livraison = nb_commandes_total * inputs['frais_livraison']
-    charges_variables = commissions + frais_livraison
+    # Calcul des frais de livraison
+    frais_livraison_total = nb_commandes_total * inputs['frais_livraison']
+    
+    # Total des charges variables
+    charges_variables = charges_variables_achats + frais_livraison_total
     
     # Calcul des charges fixes mensuelles
     charges_fixes = (
@@ -85,12 +90,17 @@ def calculate_financials(inputs, paniers_data):
     resultat_net = resultat_avant_impot - impot
     
     # Calcul du seuil de rentabilité
-    seuil_rentabilite = charges_fixes / (1 - (charges_variables / ca_total))
+    if ca_total > 0:
+        seuil_rentabilite = charges_fixes / (1 - (charges_variables / ca_total))
+    else:
+        seuil_rentabilite = 0
     
     resultats = {
         'Nombre de commandes': round(nb_commandes_total),
         'Chiffre d\'affaires Total': ca_total,
-        'Charges Variables': charges_variables,
+        'Charges Variables Achats': charges_variables_achats,
+        'Charges Variables Livraison': frais_livraison_total,
+        'Charges Variables Total': charges_variables,
         'Charges Fixes': charges_fixes,
         'Marge Brute': marge_brute,
         'Résultat avant impôt': resultat_avant_impot,
@@ -133,7 +143,7 @@ def display_panier_inputs(index):
             0, 200, int(panier['marge']),
             key=f'marge_{index}'
         )
-    
+
     with col4:
         panier['volume'] = st.number_input(
             'Volume (%)',
@@ -256,15 +266,30 @@ def main():
         df_details = pd.DataFrame(details_paniers)
         st.table(df_details)
         
-        # Afficher les autres métriques
-        st.subheader('Détail des métriques')
-        autres_metriques = {k: v for k, v in resultats.items() if not k.startswith('CA ') and not k.startswith('Commandes ')}
-        df_resultats = pd.DataFrame(list(autres_metriques.items()), columns=['Métrique', 'Valeur'])
-        df_resultats['Valeur'] = df_resultats.apply(lambda row: 
-            format_number_fr(row['Valeur'], is_currency=False, is_integer=True) 
-            if row['Métrique'] == 'Nombre de commandes'
-            else format_number_fr(row['Valeur']), axis=1)
-        st.table(df_resultats)
+        # Afficher le détail des charges
+        st.subheader('Détail des charges')
+        charges = {
+            'Charges Variables Achats': resultats['Charges Variables Achats'],
+            'Charges Variables Livraison': resultats['Charges Variables Livraison'],
+            'Charges Variables Total': resultats['Charges Variables Total'],
+            'Charges Fixes': resultats['Charges Fixes']
+        }
+        df_charges = pd.DataFrame(list(charges.items()), columns=['Type de charge', 'Montant'])
+        df_charges['Montant'] = df_charges['Montant'].apply(lambda x: format_number_fr(x))
+        st.table(df_charges)
+        
+        # Afficher les autres métriques financières
+        st.subheader('Autres métriques financières')
+        autres_metriques = {
+            'Marge Brute': resultats['Marge Brute'],
+            'Résultat avant impôt': resultats['Résultat avant impôt'],
+            'Impôt': resultats['Impôt'],
+            'Résultat Net': resultats['Résultat Net'],
+            'Seuil de rentabilité': resultats['Seuil de rentabilité']
+        }
+        df_autres = pd.DataFrame(list(autres_metriques.items()), columns=['Métrique', 'Valeur'])
+        df_autres['Valeur'] = df_autres['Valeur'].apply(lambda x: format_number_fr(x))
+        st.table(df_autres)
 
 if __name__ == '__main__':
     main()
