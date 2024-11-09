@@ -43,7 +43,7 @@ def initialize_session_state():
             'prix_achat': 10.0,
             'frais_annexes': 2.0,
             'marge': 60,
-            'part_volume': 50  # Part de volume initiale égale pour chaque panier
+            'volume': 50  # Ajout du volume en pourcentage
         } for i in range(2)]
 
 def calculate_financials(inputs, paniers_data):
@@ -52,12 +52,12 @@ def calculate_financials(inputs, paniers_data):
     
     # Calcul du chiffre d'affaires pour chaque panier
     ca_par_panier = {}
-    nb_commandes_par_panier = {}
     ca_total = 0
+    nb_commandes_par_panier = {}
     
     for panier in paniers_data:
         # Calcul du nombre de commandes pour ce panier
-        nb_commandes = nb_commandes_total * (panier['part_volume'] / 100)
+        nb_commandes = nb_commandes_total * (panier['volume'] / 100)
         nb_commandes_par_panier[panier['nom']] = nb_commandes
         
         # Calcul du CA pour ce panier
@@ -106,13 +106,6 @@ def calculate_financials(inputs, paniers_data):
         
     return resultats
 
-def validate_volume_parts():
-    """
-    Vérifie que la somme des parts de volume est égale à 100%
-    """
-    total = sum(panier['part_volume'] for panier in st.session_state.paniers_data)
-    return abs(total - 100) < 0.01  # Permettre une petite marge d'erreur pour les arrondis
-
 def display_panier_inputs(index):
     panier = st.session_state.paniers_data[index]
     
@@ -142,11 +135,11 @@ def display_panier_inputs(index):
         )
     
     with col4:
-        panier['part_volume'] = st.number_input(
-            'Part du volume (%)',
+        panier['volume'] = st.number_input(
+            'Volume (%)',
             min_value=0.0,
             max_value=100.0,
-            value=float(panier['part_volume']),
+            value=float(panier['volume']) if 'volume' in panier else 100.0 / st.session_state.num_paniers,
             key=f'volume_{index}',
             step=1.0
         )
@@ -163,27 +156,28 @@ def main():
     col_add, col_remove = st.columns([1, 1])
     with col_add:
         if st.button('Ajouter un panier'):
-            st.session_state.num_paniers += 1
-            # Ajuster les parts de volume pour maintenir un total de 100%
-            nouvelle_part = 100 / st.session_state.num_paniers
+            nouveau_volume = 100.0 / (st.session_state.num_paniers + 1)
+            # Ajuster les volumes existants
             for panier in st.session_state.paniers_data:
-                panier['part_volume'] = nouvelle_part
+                panier['volume'] = nouveau_volume
+            
+            st.session_state.num_paniers += 1
             st.session_state.paniers_data.append({
                 'nom': f'Panier {st.session_state.num_paniers}',
                 'prix_achat': 10.0,
                 'frais_annexes': 2.0,
                 'marge': 60,
-                'part_volume': nouvelle_part
+                'volume': nouveau_volume
             })
     
     with col_remove:
         if st.session_state.num_paniers > 1 and st.button('Supprimer le dernier panier'):
             st.session_state.num_paniers -= 1
             st.session_state.paniers_data.pop()
-            # Réajuster les parts de volume
-            nouvelle_part = 100 / st.session_state.num_paniers
+            # Réajuster les volumes pour les paniers restants
+            nouveau_volume = 100.0 / st.session_state.num_paniers
             for panier in st.session_state.paniers_data:
-                panier['part_volume'] = nouvelle_part
+                panier['volume'] = nouveau_volume
     
     # Afficher les inputs pour chaque panier
     for i in range(st.session_state.num_paniers):
@@ -191,10 +185,10 @@ def main():
         display_panier_inputs(i)
         st.divider()
     
-    # Vérifier que la somme des parts de volume est égale à 100%
-    if not validate_volume_parts():
-        st.error('La somme des parts de volume doit être égale à 100%')
-        return
+    # Vérifier que la somme des volumes est égale à 100%
+    total_volume = sum(panier['volume'] for panier in st.session_state.paniers_data)
+    if abs(total_volume - 100) > 0.01:  # Permettre une petite marge d'erreur due aux arrondis
+        st.warning(f'⚠️ La somme des volumes doit être égale à 100%. Actuellement : {total_volume:.1f}%')
     
     # Trafic et Conversion
     st.header('2. Trafic et Conversion')
@@ -254,8 +248,8 @@ def main():
         for panier in st.session_state.paniers_data:
             details_paniers.append({
                 'Panier': panier['nom'],
-                'Part du volume (%)': f"{panier['part_volume']}%",
-                'Nombre de commandes': format_number_fr(resultats[f"Commandes {panier['nom']}"], is_currency=False),
+                'Volume (%)': f"{panier['volume']:.1f}%",
+                'Commandes': format_number_fr(resultats[f"Commandes {panier['nom']}"], is_currency=False, is_integer=True),
                 'Chiffre d\'affaires': format_number_fr(resultats[f"CA {panier['nom']}"])
             })
         
@@ -264,8 +258,7 @@ def main():
         
         # Afficher les autres métriques
         st.subheader('Détail des métriques')
-        autres_metriques = {k: v for k, v in resultats.items() 
-                           if not k.startswith('CA ') and not k.startswith('Commandes ')}
+        autres_metriques = {k: v for k, v in resultats.items() if not k.startswith('CA ') and not k.startswith('Commandes ')}
         df_resultats = pd.DataFrame(list(autres_metriques.items()), columns=['Métrique', 'Valeur'])
         df_resultats['Valeur'] = df_resultats.apply(lambda row: 
             format_number_fr(row['Valeur'], is_currency=False, is_integer=True) 
