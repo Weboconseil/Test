@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+from plotly import graph_objects as go
+from plotly import subplots
+import plotly.express as px
 
 def calculate_metrics(
     monthly_traffic,
@@ -62,6 +64,7 @@ def calculate_metrics(
     }
 
 def main():
+    st.set_page_config(page_title="Prévisions Financières E-commerce", layout="wide")
     st.title("Prévisions Financières E-commerce")
     
     with st.sidebar:
@@ -95,7 +98,7 @@ def main():
     )
     
     # Affichage des résultats
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.subheader("Revenus")
@@ -108,22 +111,29 @@ def main():
         st.metric("Marge brute", f"{metrics['Marge brute']}€")
         st.metric("Marge nette", f"{metrics['Marge nette']}€")
         st.metric("Taux de marge brute", f"{metrics['Taux de marge brute (%)']}%")
+
+    with col3:
+        st.subheader("Ratios clés")
+        st.metric("Ratio marketing", f"{metrics['Ratio marketing (%)']}%")
+        st.metric("Point mort", f"{metrics['Point mort']}€")
     
     # Graphique en cascade
+    waterfall_data = [
+        ["CA", metrics["Chiffre d'affaires"], "relative"],
+        ["Frais Shopify", -metrics["Frais Shopify"], "relative"],
+        ["Coût d'achat", -metrics["Coût d'achat total"], "relative"],
+        ["Livraison", -metrics["Frais de livraison"], "relative"],
+        ["Marge brute", metrics["Marge brute"], "total"],
+        ["Coûts fixes", -(seo + ads + 32 + 1.25), "relative"],
+        ["Marge nette", metrics["Marge nette"], "total"]
+    ]
+    
     fig = go.Figure(go.Waterfall(
         name="Cascade financière",
         orientation="v",
-        measure=["relative", "relative", "relative", "relative", "relative", "total", "relative", "total"],
-        x=["CA", "Frais Shopify", "Coût d'achat", "Livraison", "Marge brute", "Coûts fixes", "Marge nette"],
-        y=[
-            metrics["Chiffre d'affaires"],
-            -metrics["Frais Shopify"],
-            -metrics["Coût d'achat total"],
-            -metrics["Frais de livraison"],
-            metrics["Marge brute"],
-            -(seo + ads + 32 + 1.25),  # Coûts fixes
-            metrics["Marge nette"]
-        ],
+        measure=[x[2] for x in waterfall_data],
+        x=[x[0] for x in waterfall_data],
+        y=[x[1] for x in waterfall_data],
         connector={"line": {"color": "rgb(63, 63, 63)"}},
     ))
 
@@ -134,11 +144,6 @@ def main():
     )
     
     st.plotly_chart(fig, use_container_width=True)
-    
-    # Ratios additionnels
-    st.subheader("Ratios clés")
-    st.metric("Ratio marketing", f"{metrics['Ratio marketing (%)']}%")
-    st.metric("Point mort", f"{metrics['Point mort']}€")
 
 if __name__ == "__main__":
     main()
