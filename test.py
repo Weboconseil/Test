@@ -25,7 +25,7 @@ def calculate_metrics(
     revenue = orders * avg_basket
     
     # Coûts variables
-    shopify_fees = (revenue * 0.029) + (orders * 0.30)  # 2.9% + 0.30€ par transaction
+    shopify_fees = (revenue * 0.029) + (orders * 0.30)  # 2.9% + 0.30 par transaction
     
     # Prix d'achat moyen pondéré
     basket1_cost = basket1_price * (1 - basket1_margin/100)
@@ -50,41 +50,41 @@ def calculate_metrics(
     
     return {
         "Commandes": round(orders, 2),
-        "Chiffre d'affaires": round(revenue, 2),
-        "Frais Shopify": round(shopify_fees, 2),
-        "Coût d'achat total": round(total_purchase_cost, 2),
-        "Frais de livraison": round(shipping_costs, 2),
-        "Marge brute": round(gross_margin, 2),
-        "Marge nette": round(net_margin, 2),
-        "Taux de marge brute (%)": round(gross_margin_rate, 2),
-        "Ratio marketing (%)": round(marketing_ratio, 2),
-        "Point mort": round(break_even, 2)
+        "Chiffre_affaires": round(revenue, 2),
+        "Frais_Shopify": round(shopify_fees, 2),
+        "Cout_achat_total": round(total_purchase_cost, 2),
+        "Frais_livraison": round(shipping_costs, 2),
+        "Marge_brute": round(gross_margin, 2),
+        "Marge_nette": round(net_margin, 2),
+        "Taux_marge_brute": round(gross_margin_rate, 2),
+        "Ratio_marketing": round(marketing_ratio, 2),
+        "Point_mort": round(break_even, 2)
     }
 
 def main():
-    st.title("Prévisions Financières E-commerce")
+    st.title("Previsions Financieres E-commerce")
     
     with st.sidebar:
-        st.header("Hypothèses")
+        st.header("Hypotheses")
         
         st.subheader("Trafic et Conversion")
         traffic = st.number_input("Trafic mensuel", min_value=0, value=1000)
         conversion = st.number_input("Taux de conversion (%)", min_value=0.0, value=2.0)
         
         st.subheader("Panier 1")
-        basket1_price = st.number_input("Prix panier 1 (€)", min_value=0.0, value=80.0)
+        basket1_price = st.number_input("Prix panier 1 (EUR)", min_value=0.0, value=80.0)
         basket1_margin = st.number_input("Marge panier 1 (%)", min_value=0.0, value=60.0)
         basket1_volume = st.number_input("Part volume panier 1 (%)", min_value=0.0, max_value=100.0, value=50.0)
         
         st.subheader("Panier 2")
-        basket2_price = st.number_input("Prix panier 2 (€)", min_value=0.0, value=60.0)
+        basket2_price = st.number_input("Prix panier 2 (EUR)", min_value=0.0, value=60.0)
         basket2_margin = st.number_input("Marge panier 2 (%)", min_value=0.0, value=40.0)
         basket2_volume = st.number_input("Part volume panier 2 (%)", min_value=0.0, max_value=100.0, value=50.0)
         
-        st.subheader("Coûts")
-        shipping = st.number_input("Frais de livraison par commande (€)", min_value=0.0, value=6.0)
-        seo = st.number_input("Consultant SEO (€/mois)", min_value=0.0, value=200.0)
-        ads = st.number_input("Budget publicité (€/mois)", min_value=0.0, value=300.0)
+        st.subheader("Couts")
+        shipping = st.number_input("Frais de livraison par commande (EUR)", min_value=0.0, value=6.0)
+        seo = st.number_input("Consultant SEO (EUR/mois)", min_value=0.0, value=200.0)
+        ads = st.number_input("Budget publicite (EUR/mois)", min_value=0.0, value=300.0)
     
     # Calcul des métriques
     metrics = calculate_metrics(
@@ -99,36 +99,36 @@ def main():
     
     with col1:
         st.subheader("Revenus")
-        st.metric("Nombre de commandes", f"{metrics['Commandes']}")
-        st.metric("Chiffre d'affaires", f"{metrics['Chiffre d'affaires']}€")
-        st.metric("Frais Shopify", f"{metrics['Frais Shopify']}€")
+        st.metric("Nombre de commandes", str(metrics["Commandes"]))
+        st.metric("Chiffre d'affaires", f"{metrics['Chiffre_affaires']} EUR")
+        st.metric("Frais Shopify", f"{metrics['Frais_Shopify']} EUR")
     
     with col2:
         st.subheader("Marges")
-        st.metric("Marge brute", f"{metrics['Marge brute']}€")
-        st.metric("Marge nette", f"{metrics['Marge nette']}€")
-        st.metric("Taux de marge brute", f"{metrics['Taux de marge brute (%)']}%")
+        st.metric("Marge brute", f"{metrics['Marge_brute']} EUR")
+        st.metric("Marge nette", f"{metrics['Marge_nette']} EUR")
+        st.metric("Taux de marge brute", f"{metrics['Taux_marge_brute']}%")
     
     # Graphique en cascade
     fig = go.Figure(go.Waterfall(
-        name="Cascade financière",
+        name="Cascade financiere",
         orientation="v",
         measure=["relative", "relative", "relative", "relative", "relative", "total", "relative", "total"],
-        x=["CA", "Frais Shopify", "Coût d'achat", "Livraison", "Marge brute", "Coûts fixes", "Marge nette"],
+        x=["CA", "Frais Shopify", "Cout d'achat", "Livraison", "Marge brute", "Couts fixes", "Marge nette"],
         y=[
-            metrics["Chiffre d'affaires"],
-            -metrics["Frais Shopify"],
-            -metrics["Coût d'achat total"],
-            -metrics["Frais de livraison"],
-            metrics["Marge brute"],
+            metrics["Chiffre_affaires"],
+            -metrics["Frais_Shopify"],
+            -metrics["Cout_achat_total"],
+            -metrics["Frais_livraison"],
+            metrics["Marge_brute"],
             -(seo + ads + 32 + 1.25),  # Coûts fixes
-            metrics["Marge nette"]
+            metrics["Marge_nette"]
         ],
         connector={"line": {"color": "rgb(63, 63, 63)"}},
     ))
 
     fig.update_layout(
-        title="Décomposition du résultat",
+        title="Decomposition du resultat",
         showlegend=False,
         height=500
     )
@@ -136,9 +136,9 @@ def main():
     st.plotly_chart(fig, use_container_width=True)
     
     # Ratios additionnels
-    st.subheader("Ratios clés")
-    st.metric("Ratio marketing", f"{metrics['Ratio marketing (%)']}%")
-    st.metric("Point mort", f"{metrics['Point mort']}€")
+    st.subheader("Ratios cles")
+    st.metric("Ratio marketing", f"{metrics['Ratio_marketing']}%")
+    st.metric("Point mort", f"{metrics['Point_mort']} EUR")
 
 if __name__ == "__main__":
     main()
