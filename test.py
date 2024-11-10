@@ -42,8 +42,8 @@ def initialize_session_state():
             'nom': f'Panier {i+1}',
             'prix_achat': 10.0,
             'frais_annexes': 2.0,
-            'marge': 60.0,  # Changé en float
-            'volume': 50.0  # Déjà en float
+            'marge': 60,
+            'volume': 50  # Ajout du volume en pourcentage
         } for i in range(2)]
 
 def calculate_financials(inputs, paniers_data):
@@ -54,7 +54,6 @@ def calculate_financials(inputs, paniers_data):
     ca_par_panier = {}
     ca_total = 0
     charges_variables_achats = 0
-    frais_annexes_total = 0  # Nouveau compteur pour les frais annexes
     nb_commandes_par_panier = {}
     
     for panier in paniers_data:
@@ -62,28 +61,21 @@ def calculate_financials(inputs, paniers_data):
         nb_commandes = nb_commandes_total * (panier['volume'] / 100)
         nb_commandes_par_panier[panier['nom']] = nb_commandes
         
-        # Calcul du coût total par produit (prix d'achat + frais annexes)
-        cout_total_produit = panier['prix_achat'] + panier['frais_annexes']
-        
         # Calcul du CA pour ce panier
-        prix_vente = cout_total_produit * (1 + panier['marge'] / 100)
-        ca_panier = nb_commandes * prix_vente
+        ca_panier = nb_commandes * panier['prix_achat'] * (1 + panier['marge'] / 100)
         ca_par_panier[panier['nom']] = ca_panier
         ca_total += ca_panier
         
         # Calcul des charges variables d'achat pour ce panier
         charges_variables_achats += nb_commandes * panier['prix_achat']
-        
-        # Calcul des frais annexes pour ce panier
-        frais_annexes_total += nb_commandes * panier['frais_annexes']
     
     # Calcul des frais de livraison
     frais_livraison_total = nb_commandes_total * inputs['frais_livraison']
     
-    # Total des charges variables (maintenant incluant les frais annexes)
-    charges_variables = charges_variables_achats + frais_annexes_total + frais_livraison_total
+    # Total des charges variables
+    charges_variables = charges_variables_achats + frais_livraison_total
     
-    # Suite des calculs inchangée...
+    # Calcul des charges fixes mensuelles
     charges_fixes = (
         inputs['abonnement_shopify'] +
         inputs['consultant_seo'] +
@@ -91,11 +83,13 @@ def calculate_financials(inputs, paniers_data):
         inputs['marketing']
     )
     
+    # Calculs finaux
     marge_brute = ca_total - charges_variables
     resultat_avant_impot = marge_brute - charges_fixes
     impot = resultat_avant_impot * 0.25 if resultat_avant_impot > 0 else 0
     resultat_net = resultat_avant_impot - impot
     
+    # Calcul du seuil de rentabilité
     if ca_total > 0:
         seuil_rentabilite = charges_fixes / (1 - (charges_variables / ca_total))
     else:
@@ -105,7 +99,6 @@ def calculate_financials(inputs, paniers_data):
         'Nombre de commandes': round(nb_commandes_total),
         'Chiffre d\'affaires Total': ca_total,
         'Charges Variables Achats': charges_variables_achats,
-        'Frais Annexes Total': frais_annexes_total,  # Nouveau
         'Charges Variables Livraison': frais_livraison_total,
         'Charges Variables Total': charges_variables,
         'Charges Fixes': charges_fixes,
@@ -116,6 +109,7 @@ def calculate_financials(inputs, paniers_data):
         'Seuil de rentabilité': seuil_rentabilite
     }
     
+    # Ajouter le CA et le nombre de commandes par panier aux résultats
     for nom_panier, ca in ca_par_panier.items():
         resultats[f"CA {nom_panier}"] = ca
         resultats[f"Commandes {nom_panier}"] = nb_commandes_par_panier[nom_panier]
@@ -125,7 +119,7 @@ def calculate_financials(inputs, paniers_data):
 def display_panier_inputs(index):
     panier = st.session_state.paniers_data[index]
     
-    col1, col2, col3, col4, col5 = st.columns(5)  # Ajout d'une colonne
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         nouveau_nom = st.text_input(
@@ -138,42 +132,26 @@ def display_panier_inputs(index):
     with col2:
         panier['prix_achat'] = st.number_input(
             'Prix d\'achat',
-            value=float(panier['prix_achat']),
+            value=panier['prix_achat'],
             key=f'prix_{index}',
-            step=1.0,
-            format="%.2f"
-        )
-    
-    with col3:
-        panier['frais_annexes'] = st.number_input(
-            'Frais annexes',
-            value=float(panier['frais_annexes']),
-            key=f'frais_{index}',
-            step=0.5,
-            format="%.2f",
-            help="Frais additionnels par produit (emballage, manutention, etc.)"
+            step=1.0
         )
         
-    with col4:
-        panier['marge'] = st.number_input(
+    with col3:
+        panier['marge'] = st.slider(
             'Marge (%)',
-            min_value=0.0,
-            max_value=200.0,
-            value=float(panier['marge']),
-            key=f'marge_{index}',
-            step=5.0,
-            format="%.1f"
+            0, 200, int(panier['marge']),
+            key=f'marge_{index}'
         )
 
-    with col5:
+    with col4:
         panier['volume'] = st.number_input(
             'Volume (%)',
             min_value=0.0,
             max_value=100.0,
             value=float(panier['volume']) if 'volume' in panier else 100.0 / st.session_state.num_paniers,
             key=f'volume_{index}',
-            step=1.0,
-            format="%.1f"
+            step=1.0
         )
 
 def main():
