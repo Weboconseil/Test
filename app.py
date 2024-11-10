@@ -161,8 +161,9 @@ def main():
         net_margin = gross_margin - fixed_costs
         
         # Impôts et résultat net
-        tax = max(0, net_margin * (tax_rate/100))
-        net_result = net_margin - tax
+        profit_before_tax = net_margin  # Résultat avant impôt = marge nette
+        tax = max(0, profit_before_tax * (tax_rate/100))  # Calcul corrigé de l'impôt
+        net_result = profit_before_tax - tax
 
         # Ratios
         gross_margin_rate = (gross_margin / total_revenue) * 100 if total_revenue > 0 else 0
@@ -184,7 +185,8 @@ def main():
             st.subheader("Métriques financières")
             st.write(f"Chiffre d'affaires total: {total_revenue:.2f} EUR")
             st.write(f"Marge brute: {gross_margin:.2f} EUR")
-            st.write(f"Marge nette: {net_margin:.2f} EUR")
+            st.write(f"Marge nette (Résultat avant impôt): {profit_before_tax:.2f} EUR")
+            st.write(f"Impôts: {tax:.2f} EUR")
             st.write(f"Résultat net: {net_result:.2f} EUR")
 
         st.subheader("Ratios clés")
@@ -204,7 +206,6 @@ def main():
             st.write(f"- Frais de livraison total: {shipping_cost:.2f} EUR")
             st.write(f"- Frais Shopify: {shopify_fees:.2f} EUR")
             st.write(f"\nCoûts fixes: {fixed_costs:.2f} EUR")
-            st.write(f"Impôts: {tax:.2f} EUR")
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Calculateur E-commerce", layout="wide")
