@@ -42,8 +42,8 @@ def initialize_session_state():
             'nom': f'Panier {i+1}',
             'prix_achat': 10.0,
             'frais_annexes': 2.0,
-            'marge': 60,
-            'volume': 50  # Ajout du volume en pourcentage
+            'marge': 60.0,  # Changé en float
+            'volume': 50.0  # Déjà en float
         } for i in range(2)]
 
 def calculate_financials(inputs, paniers_data):
@@ -132,7 +132,7 @@ def display_panier_inputs(index):
     with col2:
         panier['prix_achat'] = st.number_input(
             'Prix d\'achat',
-            value=panier['prix_achat'],
+            value=float(panier['prix_achat']),  # Conversion explicite en float
             key=f'prix_{index}',
             step=1.0
         )
@@ -142,9 +142,10 @@ def display_panier_inputs(index):
             'Marge (%)',
             min_value=0.0,
             max_value=200.0,
-            value=float(panier['marge']),
+            value=float(panier['marge']),  # Conversion explicite en float
             key=f'marge_{index}',
-            step=5.0
+            step=5.0,
+            format="%.1f"  # Format avec 1 décimale pour plus de précision
         )
 
     with col4:
@@ -154,7 +155,8 @@ def display_panier_inputs(index):
             max_value=100.0,
             value=float(panier['volume']) if 'volume' in panier else 100.0 / st.session_state.num_paniers,
             key=f'volume_{index}',
-            step=1.0
+            step=1.0,
+            format="%.1f"
         )
 
 def main():
