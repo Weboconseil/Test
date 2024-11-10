@@ -140,7 +140,7 @@ def display_panier_inputs(index):
     with col3:
         panier['marge'] = st.slider(
             'Marge (%)',
-            0, 200, int(panier['marge']),
+            0, 400, int(panier['marge']),
             key=f'marge_{index}'
         )
 
