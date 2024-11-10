@@ -13,8 +13,46 @@ def calculate_shopify_fees(revenue, nb_orders):
     """Calcule les frais Shopify"""
     return (revenue * 0.029) + (nb_orders * 0.30)
 
+def initialize_session_state():
+    """Initialise les variables de session"""
+    if 'baskets' not in st.session_state:
+        st.session_state.baskets = [
+            {
+                "name": "Panier Standard",
+                "price": 50.0,
+                "margin": 60.0,
+                "volume": 50.0,
+                "shipping": 0.0
+            },
+            {
+                "name": "Panier Premium",
+                "price": 50.0,
+                "margin": 60.0,
+                "volume": 50.0,
+                "shipping": 0.0
+            }
+        ]
+    if 'additional_costs' not in st.session_state:
+        st.session_state.additional_costs = []
+
+def add_basket():
+    """Ajoute un nouveau panier avec des valeurs par défaut"""
+    st.session_state.baskets.append({
+        "name": f"Nouveau Panier {len(st.session_state.baskets) + 1}",
+        "price": 50.0,
+        "margin": 60.0,
+        "volume": 0.0,
+        "shipping": 0.0
+    })
+
+def remove_last_basket():
+    """Supprime le dernier panier de la liste"""
+    if len(st.session_state.baskets) > 1:  # Garder au moins un panier
+        st.session_state.baskets.pop()
+
 def main():
     st.title("Calculateur E-commerce")
+    initialize_session_state()
     
     # Sidebar pour les paramètres globaux
     st.sidebar.header("Paramètres globaux")
@@ -25,23 +63,47 @@ def main():
     # Configuration des paniers
     st.header("1. Configuration des paniers")
     
+    # Boutons pour ajouter/supprimer des paniers
     col1, col2 = st.columns(2)
-    
     with col1:
-        st.subheader("Panier 1")
-        basket1_name = st.text_input("Nom du panier 1", "Panier Standard")
-        basket1_price = st.number_input("Prix d'achat Panier 1 (EUR)", min_value=0.0, value=50.0)
-        basket1_margin = st.number_input("Marge Panier 1 (%)", min_value=0.0, value=60.0)
-        basket1_volume = st.number_input("Part volume Panier 1 (%)", min_value=0.0, max_value=100.0, value=50.0)
-        basket1_shipping = st.number_input("Frais annexes Panier 1 (EUR)", min_value=0.0, value=0.0)
-
+        if st.button("Ajouter un panier"):
+            add_basket()
     with col2:
-        st.subheader("Panier 2")
-        basket2_name = st.text_input("Nom du panier 2", "Panier Premium")
-        basket2_price = st.number_input("Prix d'achat Panier 2 (EUR)", min_value=0.0, value=50.0)
-        basket2_margin = st.number_input("Marge Panier 2 (%)", min_value=0.0, value=60.0)
-        basket2_volume = st.number_input("Part volume Panier 2 (%)", min_value=0.0, max_value=100.0, value=50.0)
-        basket2_shipping = st.number_input("Frais annexes Panier 2 (EUR)", min_value=0.0, value=0.0)
+        if st.button("Supprimer dernier panier"):
+            remove_last_basket()
+
+    # Affichage des paniers en colonnes (2 par ligne)
+    total_volume = 0
+    for i in range(0, len(st.session_state.baskets), 2):
+        col1, col2 = st.columns(2)
+        
+        # Premier panier de la ligne
+        with col1:
+            if i < len(st.session_state.baskets):
+                st.subheader(f"Panier {i+1}")
+                basket = st.session_state.baskets[i]
+                basket["name"] = st.text_input(f"Nom du panier {i+1}", basket["name"])
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", min_value=0.0, value=basket["price"], key=f"price_{i}")
+                basket["margin"] = st.number_input(f"Marge (%)", min_value=0.0, value=basket["margin"], key=f"margin_{i}")
+                basket["volume"] = st.number_input(f"Part volume (%)", min_value=0.0, max_value=100.0, value=basket["volume"], key=f"volume_{i}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", min_value=0.0, value=basket["shipping"], key=f"shipping_{i}")
+                total_volume += basket["volume"]
+        
+        # Deuxième panier de la ligne
+        with col2:
+            if i+1 < len(st.session_state.baskets):
+                st.subheader(f"Panier {i+2}")
+                basket = st.session_state.baskets[i+1]
+                basket["name"] = st.text_input(f"Nom du panier {i+2}", basket["name"])
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", min_value=0.0, value=basket["price"], key=f"price_{i+1}")
+                basket["margin"] = st.number_input(f"Marge (%)", min_value=0.0, value=basket["margin"], key=f"margin_{i+1}")
+                basket["volume"] = st.number_input(f"Part volume (%)", min_value=0.0, max_value=100.0, value=basket["volume"], key=f"volume_{i+1}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", min_value=0.0, value=basket["shipping"], key=f"shipping_{i+1}")
+                total_volume += basket["volume"]
+
+    # Vérification du volume total
+    if abs(total_volume - 100) > 0.01:
+        st.warning(f"⚠️ La somme des parts de volume est de {total_volume}%. Elle devrait être de 100%.")
 
     # Charges fixes
     st.header("2. Charges fixes mensuelles")
@@ -50,9 +112,6 @@ def main():
     marketing_cost = st.number_input("Marketing (EUR/mois)", min_value=0.0, value=300.0)
     
     # Ajout dynamique de coûts fixes
-    if 'additional_costs' not in st.session_state:
-        st.session_state.additional_costs = []
-
     if st.button("Ajouter un coût fixe"):
         st.session_state.additional_costs.append({"name": "", "amount": 0.0})
 
@@ -67,27 +126,30 @@ def main():
 
     # Calculs
     if st.button("Calculer les résultats"):
-        # Vérification que la somme des parts de volume = 100%
-        if abs(basket1_volume + basket2_volume - 100) > 0.01:
+        # Vérification du volume total
+        if abs(total_volume - 100) > 0.01:
             st.error("La somme des parts de volume doit être égale à 100%")
             return
 
-        # Calculs panier 1
-        selling_price1, nb_orders1, revenue1 = calculate_sales_basket(
-            basket1_price, basket1_margin, basket1_volume, traffic, conversion_rate
-        )
+        total_revenue = 0
+        total_orders = 0
+        purchase_cost = 0
+        shipping_cost = 0
+        basket_revenues = []
 
-        # Calculs panier 2
-        selling_price2, nb_orders2, revenue2 = calculate_sales_basket(
-            basket2_price, basket2_margin, basket2_volume, traffic, conversion_rate
-        )
-
-        total_revenue = revenue1 + revenue2
-        total_orders = nb_orders1 + nb_orders2
+        # Calculs pour chaque panier
+        for basket in st.session_state.baskets:
+            selling_price, nb_orders, revenue = calculate_sales_basket(
+                basket["price"], basket["margin"], basket["volume"], 
+                traffic, conversion_rate
+            )
+            total_revenue += revenue
+            total_orders += nb_orders
+            purchase_cost += basket["price"] * nb_orders
+            shipping_cost += basket["shipping"] * nb_orders
+            basket_revenues.append((basket["name"], revenue))
 
         # Coûts variables
-        purchase_cost = (basket1_price * nb_orders1) + (basket2_price * nb_orders2)
-        shipping_cost = (basket1_shipping * nb_orders1) + (basket2_shipping * nb_orders2)
         shopify_fees = calculate_shopify_fees(total_revenue, total_orders)
 
         # Coûts fixes
@@ -114,8 +176,8 @@ def main():
         
         with col1:
             st.subheader("Détail par panier")
-            st.write(f"CA {basket1_name}: {revenue1:.2f} EUR")
-            st.write(f"CA {basket2_name}: {revenue2:.2f} EUR")
+            for basket_name, revenue in basket_revenues:
+                st.write(f"CA {basket_name}: {revenue:.2f} EUR")
             st.write(f"Nombre total de commandes: {total_orders:.0f}")
             
         with col2:
