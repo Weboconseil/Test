@@ -2,28 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-def number_input_with_controls(label, min_value, max_value, value, key, step=1.0, format="%.1f", is_percentage=False):
-    """Crée un input numérique avec boutons +/- pour incrémenter/décrémenter"""
-    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
-    
-    with col1:
-        number = st.number_input(label, min_value=min_value, max_value=max_value, value=value, key=key, format=format)
-    
-    with col2:
-        if st.button("-", key=f"minus_{key}"):
-            number = max(min_value, number - step)
-            st.session_state[key] = number
-    
-    with col3:
-        if st.button("+", key=f"plus_{key}"):
-            number = min(max_value if max_value is not None else float('inf'), number + step)
-            st.session_state[key] = number
-            
-    with col4:
-        st.write(f"{'%' if is_percentage else '€'}")
-    
-    return number
-
 def calculate_sales_basket(price, margin, volume_share, traffic, conversion_rate):
     """Calcule les métriques de vente pour un panier"""
     selling_price = price + (price * margin/100)
@@ -78,9 +56,18 @@ def main():
     
     # Sidebar pour les paramètres globaux
     st.sidebar.header("Paramètres globaux")
-    traffic = number_input_with_controls("Trafic mensuel", 0, None, 1000, "traffic", step=1, format="%d")
-    conversion_rate = number_input_with_controls("Taux de conversion", 0.0, 100.0, 2.0, "conversion_rate", step=1.0, is_percentage=True)
-    tax_rate = number_input_with_controls("Taux d'impôt", 0.0, 100.0, 20.0, "tax_rate", step=1.0, is_percentage=True)
+    traffic = st.sidebar.number_input("Trafic mensuel", min_value=0, value=1000, step=1)
+    conversion_rate = st.sidebar.number_input("Taux de conversion (%)", 
+                                            min_value=0.0, 
+                                            max_value=100.0, 
+                                            value=2.0, 
+                                            step=0.1,
+                                            format="%.1f")
+    tax_rate = st.sidebar.number_input("Taux d'impôt (%)", 
+                                      min_value=0.0, 
+                                      max_value=100.0, 
+                                      value=20.0, 
+                                      step=1.0)
 
     # Configuration des paniers
     st.header("1. Configuration des paniers")
@@ -105,18 +92,27 @@ def main():
                 st.subheader(f"Panier {i+1}")
                 basket = st.session_state.baskets[i]
                 basket["name"] = st.text_input(f"Nom du panier {i+1}", basket["name"])
-                basket["price"] = number_input_with_controls(
-                    f"Prix d'achat", 0.0, None, basket["price"], f"price_{i}", step=1.0
-                )
-                basket["margin"] = number_input_with_controls(
-                    f"Marge", 0.0, None, basket["margin"], f"margin_{i}", step=1.0, is_percentage=True
-                )
-                basket["volume"] = number_input_with_controls(
-                    f"Part volume", 0.0, 100.0, basket["volume"], f"volume_{i}", step=1.0, is_percentage=True
-                )
-                basket["shipping"] = number_input_with_controls(
-                    f"Frais annexes", 0.0, None, basket["shipping"], f"shipping_{i}", step=1.0
-                )
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i}")
                 total_volume += basket["volume"]
         
         # Deuxième panier de la ligne
@@ -125,18 +121,27 @@ def main():
                 st.subheader(f"Panier {i+2}")
                 basket = st.session_state.baskets[i+1]
                 basket["name"] = st.text_input(f"Nom du panier {i+2}", basket["name"])
-                basket["price"] = number_input_with_controls(
-                    f"Prix d'achat", 0.0, None, basket["price"], f"price_{i+1}", step=1.0
-                )
-                basket["margin"] = number_input_with_controls(
-                    f"Marge", 0.0, None, basket["margin"], f"margin_{i+1}", step=1.0, is_percentage=True
-                )
-                basket["volume"] = number_input_with_controls(
-                    f"Part volume", 0.0, 100.0, basket["volume"], f"volume_{i+1}", step=1.0, is_percentage=True
-                )
-                basket["shipping"] = number_input_with_controls(
-                    f"Frais annexes", 0.0, None, basket["shipping"], f"shipping_{i+1}", step=1.0
-                )
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i+1}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i+1}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i+1}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i+1}")
                 total_volume += basket["volume"]
 
     # Vérification du volume total
@@ -146,8 +151,14 @@ def main():
     # Charges fixes
     st.header("2. Charges fixes mensuelles")
     
-    seo_cost = number_input_with_controls("Consultant SEO (EUR/mois)", 0.0, None, 200.0, "seo_cost", step=1.0)
-    marketing_cost = number_input_with_controls("Marketing (EUR/mois)", 0.0, None, 300.0, "marketing_cost", step=1.0)
+    seo_cost = st.number_input("Consultant SEO (EUR/mois)", 
+                              min_value=0.0, 
+                              value=200.0, 
+                              step=1.0)
+    marketing_cost = st.number_input("Marketing (EUR/mois)", 
+                                   min_value=0.0, 
+                                   value=300.0, 
+                                   step=1.0)
     
     # Ajout dynamique de coûts fixes
     if st.button("Ajouter un coût fixe"):
@@ -159,9 +170,10 @@ def main():
         with col1:
             cost["name"] = st.text_input(f"Nom du coût {i+1}", cost["name"])
         with col2:
-            cost["amount"] = number_input_with_controls(
-                f"Montant", 0.0, None, cost["amount"], f"add_cost_{i}", step=1.0
-            )
+            cost["amount"] = st.number_input(f"Montant (EUR) {i+1}", 
+                                           min_value=0.0, 
+                                           value=cost["amount"], 
+                                           step=1.0)
         additional_fixed_costs += cost["amount"]
 
     # Calculs
@@ -201,8 +213,8 @@ def main():
         net_margin = gross_margin - fixed_costs
         
         # Impôts et résultat net
-        profit_before_tax = net_margin  # Résultat avant impôt = marge nette
-        tax = max(0, profit_before_tax * (tax_rate/100))  # Calcul corrigé de l'impôt
+        profit_before_tax = net_margin
+        tax = max(0, profit_before_tax * (tax_rate/100))
         net_result = profit_before_tax - tax
 
         # Ratios
