@@ -209,7 +209,7 @@ def main():
     st.header('3. Charges d\'exploitation')
     
     st.subheader('Charges variables')
-    frais_livraison = st.number_input('Frais d'achat annexes par commande(livraison...)', value=6.0, step=1.0)
+    frais_livraison = st.number_input('Frais d'achat annexes par commande[livraison...]', value=6.0, step=1.0)
     
     st.subheader('Charges fixes')
     col1, col2 = st.columns(2)
