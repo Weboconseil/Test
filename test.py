@@ -140,8 +140,8 @@ def display_panier_inputs(index):
     with col3:
         panier['marge'] = st.slider(
             'Marge (%)',
-            0, 400, int(panier['marge']),
-            key=f'marge_{index}',
+            0, 200, int(panier['marge']),
+            key=f'marge_{index}'
         )
 
     with col4:
@@ -209,7 +209,7 @@ def main():
     st.header('3. Charges d\'exploitation')
     
     st.subheader('Charges variables')
-    frais_livraison = st.number_input('Frais d'achat annexes par commande', value=6.0, step=1.0)
+    frais_livraison = st.number_input('Frais de livraison par commande', value=6.0, step=1.0)
     
     st.subheader('Charges fixes')
     col1, col2 = st.columns(2)
