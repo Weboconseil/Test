@@ -142,7 +142,6 @@ def display_panier_inputs(index):
             'Marge (%)',
             0, 400, int(panier['marge']),
             key=f'marge_{index}',
-            step=5.0
         )
 
     with col4:
