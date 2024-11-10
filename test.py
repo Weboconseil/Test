@@ -42,38 +42,26 @@ def initialize_session_state():
             'nom': f'Panier {i+1}',
             'prix_achat': 10.0,
             'frais_annexes': 2.0,
-            'marge': 60,
-            'volume': 50  # Ajout du volume en pourcentage
+            'marge': 60
         } for i in range(2)]
 
 def calculate_financials(inputs, paniers_data):
-    # Calcul du nombre total de commandes
-    nb_commandes_total = inputs['trafic_mensuel'] * (inputs['taux_conversion'] / 100)
+    # Calcul du nombre de commandes
+    nb_commandes = inputs['trafic_mensuel'] * (inputs['taux_conversion'] / 100)
     
-    # Calcul du chiffre d'affaires et des charges variables pour chaque panier
+    # Calcul du chiffre d'affaires pour chaque panier
     ca_par_panier = {}
     ca_total = 0
-    charges_variables_achats = 0
-    nb_commandes_par_panier = {}
     
     for panier in paniers_data:
-        # Calcul du nombre de commandes pour ce panier
-        nb_commandes = nb_commandes_total * (panier['volume'] / 100)
-        nb_commandes_par_panier[panier['nom']] = nb_commandes
-        
-        # Calcul du CA pour ce panier
         ca_panier = nb_commandes * panier['prix_achat'] * (1 + panier['marge'] / 100)
         ca_par_panier[panier['nom']] = ca_panier
         ca_total += ca_panier
-        
-        # Calcul des charges variables d'achat pour ce panier
-        charges_variables_achats += nb_commandes * panier['prix_achat']
     
-    # Calcul des frais de livraison
-    frais_livraison_total = nb_commandes_total * inputs['frais_livraison']
-    
-    # Total des charges variables
-    charges_variables = charges_variables_achats + frais_livraison_total
+    # Calcul des charges variables
+    commissions = (ca_total * 0.029) + (nb_commandes * 0.30)
+    frais_livraison = nb_commandes * inputs['frais_livraison']
+    charges_variables = commissions + frais_livraison
     
     # Calcul des charges fixes mensuelles
     charges_fixes = (
@@ -90,17 +78,12 @@ def calculate_financials(inputs, paniers_data):
     resultat_net = resultat_avant_impot - impot
     
     # Calcul du seuil de rentabilité
-    if ca_total > 0:
-        seuil_rentabilite = charges_fixes / (1 - (charges_variables / ca_total))
-    else:
-        seuil_rentabilite = 0
+    seuil_rentabilite = charges_fixes / (1 - (charges_variables / ca_total))
     
     resultats = {
-        'Nombre de commandes': round(nb_commandes_total),
+        'Nombre de commandes': round(nb_commandes),
         'Chiffre d\'affaires Total': ca_total,
-        'Charges Variables Achats': charges_variables_achats,
-        'Charges Variables Livraison': frais_livraison_total,
-        'Charges Variables Total': charges_variables,
+        'Charges Variables': charges_variables,
         'Charges Fixes': charges_fixes,
         'Marge Brute': marge_brute,
         'Résultat avant impôt': resultat_avant_impot,
@@ -109,17 +92,16 @@ def calculate_financials(inputs, paniers_data):
         'Seuil de rentabilité': seuil_rentabilite
     }
     
-    # Ajouter le CA et le nombre de commandes par panier aux résultats
+    # Ajouter le CA par panier aux résultats
     for nom_panier, ca in ca_par_panier.items():
         resultats[f"CA {nom_panier}"] = ca
-        resultats[f"Commandes {nom_panier}"] = nb_commandes_par_panier[nom_panier]
         
     return resultats
 
 def display_panier_inputs(index):
     panier = st.session_state.paniers_data[index]
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         nouveau_nom = st.text_input(
@@ -144,16 +126,6 @@ def display_panier_inputs(index):
             key=f'marge_{index}'
         )
 
-    with col4:
-        panier['volume'] = st.number_input(
-            'Volume (%)',
-            min_value=0.0,
-            max_value=100.0,
-            value=float(panier['volume']) if 'volume' in panier else 100.0 / st.session_state.num_paniers,
-            key=f'volume_{index}',
-            step=1.0
-        )
-
 def main():
     st.title('Calculateur de Rentabilité E-commerce')
     
@@ -166,39 +138,24 @@ def main():
     col_add, col_remove = st.columns([1, 1])
     with col_add:
         if st.button('Ajouter un panier'):
-            nouveau_volume = 100.0 / (st.session_state.num_paniers + 1)
-            # Ajuster les volumes existants
-            for panier in st.session_state.paniers_data:
-                panier['volume'] = nouveau_volume
-            
             st.session_state.num_paniers += 1
             st.session_state.paniers_data.append({
                 'nom': f'Panier {st.session_state.num_paniers}',
                 'prix_achat': 10.0,
                 'frais_annexes': 2.0,
-                'marge': 60,
-                'volume': nouveau_volume
+                'marge': 60
             })
     
     with col_remove:
         if st.session_state.num_paniers > 1 and st.button('Supprimer le dernier panier'):
             st.session_state.num_paniers -= 1
             st.session_state.paniers_data.pop()
-            # Réajuster les volumes pour les paniers restants
-            nouveau_volume = 100.0 / st.session_state.num_paniers
-            for panier in st.session_state.paniers_data:
-                panier['volume'] = nouveau_volume
     
     # Afficher les inputs pour chaque panier
     for i in range(st.session_state.num_paniers):
         st.subheader(f'Configuration {st.session_state.paniers_data[i]["nom"]}')
         display_panier_inputs(i)
         st.divider()
-    
-    # Vérifier que la somme des volumes est égale à 100%
-    total_volume = sum(panier['volume'] for panier in st.session_state.paniers_data)
-    if abs(total_volume - 100) > 0.01:  # Permettre une petite marge d'erreur due aux arrondis
-        st.warning(f'⚠️ La somme des volumes doit être égale à 100%. Actuellement : {total_volume:.1f}%')
     
     # Trafic et Conversion
     st.header('2. Trafic et Conversion')
@@ -254,42 +211,20 @@ def main():
         
         # Afficher le détail par panier
         st.subheader('Détail par panier')
-        details_paniers = []
-        for panier in st.session_state.paniers_data:
-            details_paniers.append({
-                'Panier': panier['nom'],
-                'Volume (%)': f"{panier['volume']:.1f}%",
-                'Commandes': format_number_fr(resultats[f"Commandes {panier['nom']}"], is_currency=False, is_integer=True),
-                'Chiffre d\'affaires': format_number_fr(resultats[f"CA {panier['nom']}"])
-            })
+        ca_paniers = {k: v for k, v in resultats.items() if k.startswith('CA ')}
+        df_ca_paniers = pd.DataFrame(list(ca_paniers.items()), columns=['Panier', 'Chiffre d\'affaires'])
+        df_ca_paniers['Chiffre d\'affaires'] = df_ca_paniers['Chiffre d\'affaires'].apply(lambda x: format_number_fr(x))
+        st.table(df_ca_paniers)
         
-        df_details = pd.DataFrame(details_paniers)
-        st.table(df_details)
-        
-        # Afficher le détail des charges
-        st.subheader('Détail des charges')
-        charges = {
-            'Charges Variables Achats': resultats['Charges Variables Achats'],
-            'Charges Variables Livraison': resultats['Charges Variables Livraison'],
-            'Charges Variables Total': resultats['Charges Variables Total'],
-            'Charges Fixes': resultats['Charges Fixes']
-        }
-        df_charges = pd.DataFrame(list(charges.items()), columns=['Type de charge', 'Montant'])
-        df_charges['Montant'] = df_charges['Montant'].apply(lambda x: format_number_fr(x))
-        st.table(df_charges)
-        
-        # Afficher les autres métriques financières
-        st.subheader('Autres métriques financières')
-        autres_metriques = {
-            'Marge Brute': resultats['Marge Brute'],
-            'Résultat avant impôt': resultats['Résultat avant impôt'],
-            'Impôt': resultats['Impôt'],
-            'Résultat Net': resultats['Résultat Net'],
-            'Seuil de rentabilité': resultats['Seuil de rentabilité']
-        }
-        df_autres = pd.DataFrame(list(autres_metriques.items()), columns=['Métrique', 'Valeur'])
-        df_autres['Valeur'] = df_autres['Valeur'].apply(lambda x: format_number_fr(x))
-        st.table(df_autres)
+        # Afficher les autres métriques
+        st.subheader('Détail des métriques')
+        autres_metriques = {k: v for k, v in resultats.items() if not k.startswith('CA ')}
+        df_resultats = pd.DataFrame(list(autres_metriques.items()), columns=['Métrique', 'Valeur'])
+        df_resultats['Valeur'] = df_resultats.apply(lambda row: 
+            format_number_fr(row['Valeur'], is_currency=False, is_integer=True) 
+            if row['Métrique'] == 'Nombre de commandes'
+            else format_number_fr(row['Valeur']), axis=1)
+        st.table(df_resultats)
 
 if __name__ == '__main__':
     main()
