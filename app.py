@@ -61,8 +61,8 @@ def main():
                                             min_value=0.0, 
                                             max_value=100.0, 
                                             value=2.0, 
-                                            step=0.1,
-                                            format="%.1f")
+                                            step=0.05,
+                                            format="%.2f")
     tax_rate = st.sidebar.number_input("Taux d'impôt (%)", 
                                       min_value=0.0, 
                                       max_value=100.0, 
