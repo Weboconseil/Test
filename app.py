@@ -50,7 +50,7 @@ def remove_last_basket():
     if len(st.session_state.baskets) > 1:  # Garder au moins un panier
         st.session_state.baskets.pop()
 
-def update_basket_value(basket_index, field, value):
+def update_basket_value(value, basket_index, field):
     """Met à jour une valeur spécifique d'un panier"""
     st.session_state.baskets[basket_index][field] = value
 
@@ -103,7 +103,7 @@ def main():
                     step=1.0,
                     key=f"price_{i}",
                     on_change=update_basket_value,
-                    args=(i, "price",)
+                    kwargs=dict(basket_index=i, field="price")
                 )
                 basket["margin"] = st.number_input(
                     f"Marge (%)", 
@@ -112,7 +112,7 @@ def main():
                     step=1.0,
                     key=f"margin_{i}",
                     on_change=update_basket_value,
-                    args=(i, "margin",)
+                    kwargs=dict(basket_index=i, field="margin")
                 )
                 basket["volume"] = st.number_input(
                     f"Part volume (%)", 
@@ -122,7 +122,7 @@ def main():
                     step=1.0,
                     key=f"volume_{i}",
                     on_change=update_basket_value,
-                    args=(i, "volume",)
+                    kwargs=dict(basket_index=i, field="volume")
                 )
                 basket["shipping"] = st.number_input(
                     f"Frais annexes (EUR)", 
@@ -131,7 +131,7 @@ def main():
                     step=1.0,
                     key=f"shipping_{i}",
                     on_change=update_basket_value,
-                    args=(i, "shipping",)
+                    kwargs=dict(basket_index=i, field="shipping")
                 )
                 total_volume += basket["volume"]
         
@@ -148,7 +148,7 @@ def main():
                     step=1.0,
                     key=f"price_{i+1}",
                     on_change=update_basket_value,
-                    args=(i+1, "price",)
+                    kwargs=dict(basket_index=i+1, field="price")
                 )
                 basket["margin"] = st.number_input(
                     f"Marge (%)", 
@@ -157,7 +157,7 @@ def main():
                     step=1.0,
                     key=f"margin_{i+1}",
                     on_change=update_basket_value,
-                    args=(i+1, "margin",)
+                    kwargs=dict(basket_index=i+1, field="margin")
                 )
                 basket["volume"] = st.number_input(
                     f"Part volume (%)", 
@@ -167,7 +167,7 @@ def main():
                     step=1.0,
                     key=f"volume_{i+1}",
                     on_change=update_basket_value,
-                    args=(i+1, "volume",)
+                    kwargs=dict(basket_index=i+1, field="volume")
                 )
                 basket["shipping"] = st.number_input(
                     f"Frais annexes (EUR)", 
@@ -176,7 +176,7 @@ def main():
                     step=1.0,
                     key=f"shipping_{i+1}",
                     on_change=update_basket_value,
-                    args=(i+1, "shipping",)
+                    kwargs=dict(basket_index=i+1, field="shipping")
                 )
                 total_volume += basket["volume"]
 
