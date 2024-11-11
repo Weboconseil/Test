@@ -50,10 +50,6 @@ def remove_last_basket():
     if len(st.session_state.baskets) > 1:  # Garder au moins un panier
         st.session_state.baskets.pop()
 
-def update_basket_value(value, basket_index, field):
-    """Met à jour une valeur spécifique d'un panier"""
-    st.session_state.baskets[basket_index][field] = value
-
 def main():
     st.title("Calculateur E-commerce")
     initialize_session_state()
@@ -96,43 +92,27 @@ def main():
                 st.subheader(f"Panier {i+1}")
                 basket = st.session_state.baskets[i]
                 basket["name"] = st.text_input(f"Nom du panier {i+1}", basket["name"])
-                basket["price"] = st.number_input(
-                    f"Prix d'achat (EUR)", 
-                    min_value=0.0, 
-                    value=basket["price"], 
-                    step=1.0,
-                    key=f"price_{i}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i, field="price")
-                )
-                basket["margin"] = st.number_input(
-                    f"Marge (%)", 
-                    min_value=0.0, 
-                    value=basket["margin"], 
-                    step=1.0,
-                    key=f"margin_{i}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i, field="margin")
-                )
-                basket["volume"] = st.number_input(
-                    f"Part volume (%)", 
-                    min_value=0.0, 
-                    max_value=100.0, 
-                    value=basket["volume"], 
-                    step=1.0,
-                    key=f"volume_{i}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i, field="volume")
-                )
-                basket["shipping"] = st.number_input(
-                    f"Frais annexes (EUR)", 
-                    min_value=0.0, 
-                    value=basket["shipping"], 
-                    step=1.0,
-                    key=f"shipping_{i}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i, field="shipping")
-                )
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i}")
                 total_volume += basket["volume"]
         
         # Deuxième panier de la ligne
@@ -141,43 +121,27 @@ def main():
                 st.subheader(f"Panier {i+2}")
                 basket = st.session_state.baskets[i+1]
                 basket["name"] = st.text_input(f"Nom du panier {i+2}", basket["name"])
-                basket["price"] = st.number_input(
-                    f"Prix d'achat (EUR)", 
-                    min_value=0.0, 
-                    value=basket["price"], 
-                    step=1.0,
-                    key=f"price_{i+1}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i+1, field="price")
-                )
-                basket["margin"] = st.number_input(
-                    f"Marge (%)", 
-                    min_value=0.0, 
-                    value=basket["margin"], 
-                    step=1.0,
-                    key=f"margin_{i+1}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i+1, field="margin")
-                )
-                basket["volume"] = st.number_input(
-                    f"Part volume (%)", 
-                    min_value=0.0, 
-                    max_value=100.0, 
-                    value=basket["volume"], 
-                    step=1.0,
-                    key=f"volume_{i+1}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i+1, field="volume")
-                )
-                basket["shipping"] = st.number_input(
-                    f"Frais annexes (EUR)", 
-                    min_value=0.0, 
-                    value=basket["shipping"], 
-                    step=1.0,
-                    key=f"shipping_{i+1}",
-                    on_change=update_basket_value,
-                    kwargs=dict(basket_index=i+1, field="shipping")
-                )
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i+1}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i+1}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i+1}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i+1}")
                 total_volume += basket["volume"]
 
     # Vérification du volume total
