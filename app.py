@@ -56,9 +56,18 @@ def main():
     
     # Sidebar pour les paramètres globaux
     st.sidebar.header("Paramètres globaux")
-    traffic = st.sidebar.number_input("Trafic mensuel", min_value=0, value=1000)
-    conversion_rate = st.sidebar.number_input("Taux de conversion (%)", min_value=0.0, max_value=100.0, value=2.0)
-    tax_rate = st.sidebar.number_input("Taux d'impôt (%)", min_value=0.0, max_value=100.0, value=20.0)
+    traffic = st.sidebar.number_input("Trafic mensuel", min_value=0, value=1000, step=1)
+    conversion_rate = st.sidebar.number_input("Taux de conversion (%)", 
+                                            min_value=0.0, 
+                                            max_value=100.0, 
+                                            value=2.0, 
+                                            step=0.1,
+                                            format="%.1f")
+    tax_rate = st.sidebar.number_input("Taux d'impôt (%)", 
+                                      min_value=0.0, 
+                                      max_value=100.0, 
+                                      value=20.0, 
+                                      step=1.0)
 
     # Configuration des paniers
     st.header("1. Configuration des paniers")
@@ -83,10 +92,27 @@ def main():
                 st.subheader(f"Panier {i+1}")
                 basket = st.session_state.baskets[i]
                 basket["name"] = st.text_input(f"Nom du panier {i+1}", basket["name"])
-                basket["price"] = st.number_input(f"Prix d'achat (EUR)", min_value=0.0, value=basket["price"], key=f"price_{i}")
-                basket["margin"] = st.number_input(f"Marge (%)", min_value=0.0, value=basket["margin"], key=f"margin_{i}")
-                basket["volume"] = st.number_input(f"Part volume (%)", min_value=0.0, max_value=100.0, value=basket["volume"], key=f"volume_{i}")
-                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", min_value=0.0, value=basket["shipping"], key=f"shipping_{i}")
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i}")
                 total_volume += basket["volume"]
         
         # Deuxième panier de la ligne
@@ -95,10 +121,27 @@ def main():
                 st.subheader(f"Panier {i+2}")
                 basket = st.session_state.baskets[i+1]
                 basket["name"] = st.text_input(f"Nom du panier {i+2}", basket["name"])
-                basket["price"] = st.number_input(f"Prix d'achat (EUR)", min_value=0.0, value=basket["price"], key=f"price_{i+1}")
-                basket["margin"] = st.number_input(f"Marge (%)", min_value=0.0, value=basket["margin"], key=f"margin_{i+1}")
-                basket["volume"] = st.number_input(f"Part volume (%)", min_value=0.0, max_value=100.0, value=basket["volume"], key=f"volume_{i+1}")
-                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", min_value=0.0, value=basket["shipping"], key=f"shipping_{i+1}")
+                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
+                                                min_value=0.0, 
+                                                value=basket["price"], 
+                                                step=1.0,
+                                                key=f"price_{i+1}")
+                basket["margin"] = st.number_input(f"Marge (%)", 
+                                                 min_value=0.0, 
+                                                 value=basket["margin"], 
+                                                 step=1.0,
+                                                 key=f"margin_{i+1}")
+                basket["volume"] = st.number_input(f"Part volume (%)", 
+                                                 min_value=0.0, 
+                                                 max_value=100.0, 
+                                                 value=basket["volume"], 
+                                                 step=1.0,
+                                                 key=f"volume_{i+1}")
+                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
+                                                   min_value=0.0, 
+                                                   value=basket["shipping"], 
+                                                   step=1.0,
+                                                   key=f"shipping_{i+1}")
                 total_volume += basket["volume"]
 
     # Vérification du volume total
@@ -108,8 +151,14 @@ def main():
     # Charges fixes
     st.header("2. Charges fixes mensuelles")
     
-    seo_cost = st.number_input("Consultant SEO (EUR/mois)", min_value=0.0, value=200.0)
-    marketing_cost = st.number_input("Marketing (EUR/mois)", min_value=0.0, value=300.0)
+    seo_cost = st.number_input("Consultant SEO (EUR/mois)", 
+                              min_value=0.0, 
+                              value=200.0, 
+                              step=1.0)
+    marketing_cost = st.number_input("Marketing (EUR/mois)", 
+                                   min_value=0.0, 
+                                   value=300.0, 
+                                   step=1.0)
     
     # Ajout dynamique de coûts fixes
     if st.button("Ajouter un coût fixe"):
@@ -121,7 +170,10 @@ def main():
         with col1:
             cost["name"] = st.text_input(f"Nom du coût {i+1}", cost["name"])
         with col2:
-            cost["amount"] = st.number_input(f"Montant (EUR) {i+1}", min_value=0.0, value=cost["amount"])
+            cost["amount"] = st.number_input(f"Montant (EUR) {i+1}", 
+                                           min_value=0.0, 
+                                           value=cost["amount"], 
+                                           step=1.0)
         additional_fixed_costs += cost["amount"]
 
     # Calculs
@@ -161,8 +213,9 @@ def main():
         net_margin = gross_margin - fixed_costs
         
         # Impôts et résultat net
-        tax = max(0, net_margin * (tax_rate/100))
-        net_result = net_margin - tax
+        profit_before_tax = net_margin
+        tax = max(0, profit_before_tax * (tax_rate/100))
+        net_result = profit_before_tax - tax
 
         # Ratios
         gross_margin_rate = (gross_margin / total_revenue) * 100 if total_revenue > 0 else 0
@@ -184,7 +237,8 @@ def main():
             st.subheader("Métriques financières")
             st.write(f"Chiffre d'affaires total: {total_revenue:.2f} EUR")
             st.write(f"Marge brute: {gross_margin:.2f} EUR")
-            st.write(f"Marge nette: {net_margin:.2f} EUR")
+            st.write(f"Marge nette (Résultat avant impôt): {profit_before_tax:.2f} EUR")
+            st.write(f"Impôts: {tax:.2f} EUR")
             st.write(f"Résultat net: {net_result:.2f} EUR")
 
         st.subheader("Ratios clés")
@@ -204,7 +258,6 @@ def main():
             st.write(f"- Frais de livraison total: {shipping_cost:.2f} EUR")
             st.write(f"- Frais Shopify: {shopify_fees:.2f} EUR")
             st.write(f"\nCoûts fixes: {fixed_costs:.2f} EUR")
-            st.write(f"Impôts: {tax:.2f} EUR")
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Calculateur E-commerce", layout="wide")
