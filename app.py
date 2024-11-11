@@ -1,264 +1,242 @@
-import streamlit as st
+# Installation des dépendances nécessaires
+!pip install ipywidgets
+
+import ipywidgets as widgets
+from IPython.display import display, HTML
 import pandas as pd
-import numpy as np
 
-def calculate_sales_basket(price, margin, volume_share, traffic, conversion_rate):
-    """Calcule les métriques de vente pour un panier"""
-    selling_price = price + (price * margin/100)
-    nb_orders = traffic * (conversion_rate/100) * (volume_share/100)
-    revenue = nb_orders * selling_price
-    return selling_price, nb_orders, revenue
+# Création des widgets pour l'interface
+style = {'description_width': '200px'}
+layout = widgets.Layout(width='400px')
 
-def calculate_shopify_fees(revenue, nb_orders):
-    """Calcule les frais Shopify"""
-    return (revenue * 0.029) + (nb_orders * 0.30)
-
-def initialize_session_state():
-    """Initialise les variables de session"""
-    if 'baskets' not in st.session_state:
-        st.session_state.baskets = [
-            {
-                "name": "Panier Standard",
-                "price": 50.0,
-                "margin": 60.0,
-                "volume": 50.0,
-                "shipping": 0.0
-            },
-            {
-                "name": "Panier Premium",
-                "price": 50.0,
-                "margin": 60.0,
-                "volume": 50.0,
-                "shipping": 0.0
-            }
-        ]
-    if 'additional_costs' not in st.session_state:
-        st.session_state.additional_costs = []
-
-def add_basket():
-    """Ajoute un nouveau panier avec des valeurs par défaut"""
-    st.session_state.baskets.append({
-        "name": f"Nouveau Panier {len(st.session_state.baskets) + 1}",
-        "price": 50.0,
-        "margin": 60.0,
-        "volume": 0.0,
-        "shipping": 0.0
-    })
-
-def remove_last_basket():
-    """Supprime le dernier panier de la liste"""
-    if len(st.session_state.baskets) > 1:  # Garder au moins un panier
-        st.session_state.baskets.pop()
-
-def main():
-    st.title("Calculateur E-commerce")
-    initialize_session_state()
-    
-    # Sidebar pour les paramètres globaux
-    st.sidebar.header("Paramètres globaux")
-    traffic = st.sidebar.number_input("Trafic mensuel", min_value=0, value=1000, step=1)
-    conversion_rate = st.sidebar.number_input("Taux de conversion (%)", 
-                                            min_value=0.0, 
-                                            max_value=100.0, 
-                                            value=2.0, 
-                                            step=0.05,
-                                            format="%.2f")
-    tax_rate = st.sidebar.number_input("Taux d'impôt (%)", 
-                                      min_value=0.0, 
-                                      max_value=100.0, 
-                                      value=20.0, 
-                                      step=1.0)
-
-    # Configuration des paniers
-    st.header("1. Configuration des paniers")
-    
-    # Boutons pour ajouter/supprimer des paniers
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Ajouter un panier"):
-            add_basket()
-    with col2:
-        if st.button("Supprimer dernier panier"):
-            remove_last_basket()
-
-    # Affichage des paniers en colonnes (2 par ligne)
-    total_volume = 0
-    for i in range(0, len(st.session_state.baskets), 2):
-        col1, col2 = st.columns(2)
+class EcommerceCalculator:
+    def __init__(self):
+        self.paniers = []
+        self.current_panier_id = 1
         
-        # Premier panier de la ligne
-        with col1:
-            if i < len(st.session_state.baskets):
-                st.subheader(f"Panier {i+1}")
-                basket = st.session_state.baskets[i]
-                basket["name"] = st.text_input(f"Nom du panier {i+1}", basket["name"])
-                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
-                                                min_value=0.0, 
-                                                value=basket["price"], 
-                                                step=1.0,
-                                                key=f"price_{i}")
-                basket["margin"] = st.number_input(f"Marge (%)", 
-                                                 min_value=0.0, 
-                                                 value=basket["margin"], 
-                                                 step=1.0,
-                                                 key=f"margin_{i}")
-                basket["volume"] = st.number_input(f"Part volume (%)", 
-                                                 min_value=0.0, 
-                                                 max_value=100.0, 
-                                                 value=basket["volume"], 
-                                                 step=1.0,
-                                                 key=f"volume_{i}")
-                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
-                                                   min_value=0.0, 
-                                                   value=basket["shipping"], 
-                                                   step=1.0,
-                                                   key=f"shipping_{i}")
-                total_volume += basket["volume"]
+        # Création de l'interface principale
+        self.main_container = widgets.VBox([])
+        self.paniers_container = widgets.VBox([])
+        self.setup_interface()
         
-        # Deuxième panier de la ligne
-        with col2:
-            if i+1 < len(st.session_state.baskets):
-                st.subheader(f"Panier {i+2}")
-                basket = st.session_state.baskets[i+1]
-                basket["name"] = st.text_input(f"Nom du panier {i+2}", basket["name"])
-                basket["price"] = st.number_input(f"Prix d'achat (EUR)", 
-                                                min_value=0.0, 
-                                                value=basket["price"], 
-                                                step=1.0,
-                                                key=f"price_{i+1}")
-                basket["margin"] = st.number_input(f"Marge (%)", 
-                                                 min_value=0.0, 
-                                                 value=basket["margin"], 
-                                                 step=1.0,
-                                                 key=f"margin_{i+1}")
-                basket["volume"] = st.number_input(f"Part volume (%)", 
-                                                 min_value=0.0, 
-                                                 max_value=100.0, 
-                                                 value=basket["volume"], 
-                                                 step=1.0,
-                                                 key=f"volume_{i+1}")
-                basket["shipping"] = st.number_input(f"Frais annexes (EUR)", 
-                                                   min_value=0.0, 
-                                                   value=basket["shipping"], 
-                                                   step=1.0,
-                                                   key=f"shipping_{i+1}")
-                total_volume += basket["volume"]
-
-    # Vérification du volume total
-    if abs(total_volume - 100) > 0.01:
-        st.warning(f"⚠️ La somme des parts de volume est de {total_volume}%. Elle devrait être de 100%.")
-
-    # Charges fixes
-    st.header("2. Charges fixes mensuelles")
+    def create_float_widget(self, description, value=0.0, step=0.1):
+        return widgets.FloatText(
+            value=value,
+            description=description,
+            style=style,
+            layout=layout
+        )
     
-    seo_cost = st.number_input("Consultant SEO (EUR/mois)", 
-                              min_value=0.0, 
-                              value=200.0, 
-                              step=1.0)
-    marketing_cost = st.number_input("Marketing (EUR/mois)", 
-                                   min_value=0.0, 
-                                   value=300.0, 
-                                   step=1.0)
+    def create_section(self, title):
+        return widgets.HTML(value=f"<h3 style='color: #2c3e50; margin-top: 20px;'>{title}</h3>")
     
-    # Ajout dynamique de coûts fixes
-    if st.button("Ajouter un coût fixe"):
-        st.session_state.additional_costs.append({"name": "", "amount": 0.0})
-
-    additional_fixed_costs = 0
-    for i, cost in enumerate(st.session_state.additional_costs):
-        col1, col2 = st.columns(2)
-        with col1:
-            cost["name"] = st.text_input(f"Nom du coût {i+1}", cost["name"])
-        with col2:
-            cost["amount"] = st.number_input(f"Montant (EUR) {i+1}", 
-                                           min_value=0.0, 
-                                           value=cost["amount"], 
-                                           step=1.0)
-        additional_fixed_costs += cost["amount"]
-
-    # Calculs
-    if st.button("Calculer les résultats"):
-        # Vérification du volume total
-        if abs(total_volume - 100) > 0.01:
-            st.error("La somme des parts de volume doit être égale à 100%")
-            return
-
-        total_revenue = 0
-        total_orders = 0
-        purchase_cost = 0
-        shipping_cost = 0
-        basket_revenues = []
-
-        # Calculs pour chaque panier
-        for basket in st.session_state.baskets:
-            selling_price, nb_orders, revenue = calculate_sales_basket(
-                basket["price"], basket["margin"], basket["volume"], 
-                traffic, conversion_rate
+    def create_panier_section(self, panier_id):
+        # Créer le widget de titre personnalisable
+        titre_widget = widgets.Text(
+            value=f'Panier {panier_id}',
+            description='Nom du panier:',
+            style=style,
+            layout=layout
+        )
+        
+        panier = widgets.VBox([
+            self.create_section(f"Panier {panier_id}"),
+            titre_widget,
+            self.create_float_widget('Prix achat (EUR):', 0.0),
+            self.create_float_widget('Frais annexes (EUR):', 0.0),
+            self.create_float_widget('Marge beneficiaire (%):', 60.0),
+            widgets.FloatText(
+                value=1.0,
+                description='Part du volume (%):',
+                style=style,
+                layout=layout
             )
-            total_revenue += revenue
-            total_orders += nb_orders
-            purchase_cost += basket["price"] * nb_orders
-            shipping_cost += basket["shipping"] * nb_orders
-            basket_revenues.append((basket["name"], revenue))
-
-        # Coûts variables
-        shopify_fees = calculate_shopify_fees(total_revenue, total_orders)
-
-        # Coûts fixes
-        fixed_costs = seo_cost + marketing_cost + additional_fixed_costs
-
-        # Marges
-        variable_costs = purchase_cost + shipping_cost + shopify_fees
-        gross_margin = total_revenue - variable_costs
-        net_margin = gross_margin - fixed_costs
+        ])
         
-        # Impôts et résultat net
-        profit_before_tax = net_margin
-        tax = max(0, profit_before_tax * (tax_rate/100))
-        net_result = profit_before_tax - tax
-
-        # Ratios
-        gross_margin_rate = (gross_margin / total_revenue) * 100 if total_revenue > 0 else 0
-        marketing_ratio = (marketing_cost / total_revenue) * 100 if total_revenue > 0 else 0
-        break_even = fixed_costs / (gross_margin_rate/100) if gross_margin_rate > 0 else 0
-
-        # Affichage des résultats
-        st.header("Résultats mensuels")
+        # Mettre à jour le titre de la section quand le nom change
+        def update_title(change):
+            panier.children[0].value = f"<h3 style='color: #2c3e50; margin-top: 20px;'>{change.new}</h3>"
+        titre_widget.observe(update_title, names='value')
         
-        col1, col2 = st.columns(2)
+        return panier
+    
+    def add_panier(self, b):
+        new_panier = self.create_panier_section(self.current_panier_id)
+        self.paniers.append(new_panier)
+        self.current_panier_id += 1
+        self.update_paniers_display()
+    
+    def remove_last_panier(self, b):
+        if len(self.paniers) > 1:  # Garder au moins un panier
+            self.paniers.pop()
+            self.current_panier_id -= 1
+            self.update_paniers_display()
+    
+    def update_paniers_display(self):
+        self.paniers_container.children = tuple(self.paniers)
+    
+    def setup_interface(self):
+        # Créer le premier panier
+        first_panier = self.create_panier_section(self.current_panier_id)
+        self.paniers.append(first_panier)
+        self.current_panier_id += 1
         
-        with col1:
-            st.subheader("Détail par panier")
-            for basket_name, revenue in basket_revenues:
-                st.write(f"CA {basket_name}: {revenue:.2f} EUR")
-            st.write(f"Nombre total de commandes: {total_orders:.0f}")
+        # Boutons pour gérer les paniers
+        self.add_panier_button = widgets.Button(
+            description='Ajouter un panier',
+            style=widgets.ButtonStyle(button_color='#2ecc71'),
+            layout=widgets.Layout(width='150px')
+        )
+        self.remove_panier_button = widgets.Button(
+            description='Supprimer un panier',
+            style=widgets.ButtonStyle(button_color='#e74c3c'),
+            layout=widgets.Layout(width='150px')
+        )
+        
+        self.add_panier_button.on_click(self.add_panier)
+        self.remove_panier_button.on_click(self.remove_last_panier)
+        
+        # Section trafic
+        self.trafic_section = widgets.VBox([
+            self.create_section("Trafic"),
+            widgets.IntText(value=0, description='Trafic mensuel:', style=style, layout=layout),
+            self.create_float_widget('Taux conversion (%):', 1.0),
+        ])
+        
+        # Section charges variables
+        self.charges_variables_section = widgets.VBox([
+            self.create_section("Charges Variables"),
+            self.create_float_widget('Commission (%):', 2.9),
+            self.create_float_widget('Commission fixe/cmd (EUR):', 0.30),
+            self.create_float_widget('Frais livraison/cmd (EUR):', 6.0),
+        ])
+        
+        # Section charges fixes
+        self.charges_fixes_section = widgets.VBox([
+            self.create_section("Charges Fixes Mensuelles"),
+            self.create_float_widget('Abonnement Shopify (EUR):', 32.0),
+            self.create_float_widget('Consultant SEO (EUR):', 200.0),
+            self.create_float_widget('Nom de domaine (EUR/mois):', 1.25),
+            self.create_float_widget('Marketing (EUR):', 250.0),
+        ])
+        
+        # Bouton de calcul
+        self.calculate_button = widgets.Button(
+            description='Calculer la rentabilite',
+            style=widgets.ButtonStyle(button_color='#3498db'),
+            layout=widgets.Layout(width='200px')
+        )
+        
+        self.output = widgets.Output()
+        self.calculate_button.on_click(self.calculate_results)
+        
+        # Mise à jour de l'interface
+        self.update_paniers_display()
+        self.main_container.children = (
+            widgets.HBox([self.add_panier_button, self.remove_panier_button]),
+            self.paniers_container,
+            self.trafic_section,
+            self.charges_variables_section,
+            self.charges_fixes_section,
+            self.calculate_button,
+            self.output
+        )
+    
+    def calculate_results(self, b):
+        with self.output:
+            self.output.clear_output()
             
-        with col2:
-            st.subheader("Métriques financières")
-            st.write(f"Chiffre d'affaires total: {total_revenue:.2f} EUR")
-            st.write(f"Marge brute: {gross_margin:.2f} EUR")
-            st.write(f"Marge nette (Résultat avant impôt): {profit_before_tax:.2f} EUR")
-            st.write(f"Impôts: {tax:.2f} EUR")
-            st.write(f"Résultat net: {net_result:.2f} EUR")
+            # Récupération des valeurs de trafic et charges
+            trafic = self.trafic_section.children[1].value
+            conversion = self.trafic_section.children[2].value / 100
+            
+            comm_percent = self.charges_variables_section.children[1].value / 100
+            comm_fixe = self.charges_variables_section.children[2].value
+            frais_livraison = self.charges_variables_section.children[3].value
+            
+            shopify = self.charges_fixes_section.children[1].value
+            seo = self.charges_fixes_section.children[2].value
+            domaine = self.charges_fixes_section.children[3].value
+            marketing = self.charges_fixes_section.children[4].value
+            
+            # Calculs pour chaque panier
+            nb_commandes = trafic * conversion
+            ca_total = 0
+            resultats_paniers = []
+            
+            # Normaliser les parts de volume
+            total_parts = sum(panier.children[5].value for panier in self.paniers)
+            
+            for i, panier in enumerate(self.paniers, 1):
+                nom_panier = panier.children[1].value
+                prix = panier.children[2].value
+                frais = panier.children[3].value
+                marge = panier.children[4].value / 100
+                part = panier.children[5].value / total_parts
+                
+                prix_vente = (prix + frais) / (1 - marge)
+                ca_panier = nb_commandes * part * prix_vente
+                
+                resultats_paniers.append({
+                    'Panier': nom_panier,
+                    'Prix de vente': f"{prix_vente:.2f} EUR",
+                    'Part du volume': f"{part*100:.1f}%",
+                    'CA': f"{ca_panier:.2f} EUR"
+                })
+                
+                ca_total += ca_panier
+            
+            charges_variables = (ca_total * comm_percent) + (nb_commandes * comm_fixe) + (nb_commandes * frais_livraison)
+            charges_fixes = shopify + seo + domaine + marketing
+            
+            marge_brute = ca_total - charges_variables
+            resultat_avant_impot = marge_brute - charges_fixes
+            impot = max(0, resultat_avant_impot * 0.25)
+            resultat_net = resultat_avant_impot - impot
+            
+            # Affichage des résultats par panier
+            display(HTML("<h2 style='color: #2c3e50;'>Détail par panier</h2>"))
+            df_paniers = pd.DataFrame(resultats_paniers)
+            display(df_paniers.style.set_properties(**{
+                'background-color': '#f8f9fa',
+                'border': '1px solid #dee2e6',
+                'padding': '8px'
+            }))
+            
+            # Affichage des résultats globaux
+            display(HTML("<h2 style='color: #2c3e50;'>Résultats Mensuels Globaux</h2>"))
+            results_df = pd.DataFrame({
+                'Metrique': [
+                    'Nombre de commandes',
+                    'Chiffre affaires total',
+                    'Charges variables',
+                    'Charges fixes',
+                    'Marge brute',
+                    'Resultat avant impot',
+                    'Impot estime',
+                    'Resultat net'
+                ],
+                'Valeur': [
+                    f"{nb_commandes:.0f}",
+                    f"{ca_total:.2f} EUR",
+                    f"{charges_variables:.2f} EUR",
+                    f"{charges_fixes:.2f} EUR",
+                    f"{marge_brute:.2f} EUR",
+                    f"{resultat_avant_impot:.2f} EUR",
+                    f"{impot:.2f} EUR",
+                    f"{resultat_net:.2f} EUR"
+                ]
+            })
+            
+            styled_df = results_df.style\
+                .set_properties(**{'background-color': '#f8f9fa', 'border': '1px solid #dee2e6', 'padding': '8px'})\
+                .set_table_styles([
+                    {'selector': 'th', 'props': [('background-color', '#e9ecef'), ('font-weight', 'bold')]},
+                    {'selector': '', 'props': [('border-collapse', 'collapse')]}
+                ])
+            
+            display(styled_df)
 
-        st.subheader("Ratios clés")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Taux de marge brute", f"{gross_margin_rate:.1f}%")
-        with col2:
-            st.metric("Ratio marketing", f"{marketing_ratio:.1f}%")
-        with col3:
-            st.metric("Point mort", f"{break_even:.2f} EUR")
-
-        # Détail des coûts
-        with st.expander("Voir le détail des coûts"):
-            st.write("Coûts variables:")
-            st.write(f"- Coût d'achat total: {purchase_cost:.2f} EUR")
-            st.write(f"- Frais de livraison total: {shipping_cost:.2f} EUR")
-            st.write(f"- Frais Shopify: {shopify_fees:.2f} EUR")
-            st.write(f"\nCoûts fixes: {fixed_costs:.2f} EUR")
-
-if __name__ == "__main__":
-    st.set_page_config(page_title="Calculateur E-commerce", layout="wide")
-    main()
+# Création et affichage de l'interface
+calculator = EcommerceCalculator()
+display(calculator.main_container)
